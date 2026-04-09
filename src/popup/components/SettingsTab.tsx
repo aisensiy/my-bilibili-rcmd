@@ -186,7 +186,11 @@ export default function SettingsTab() {
           <p className="text-[10px] text-gray-400 mt-0.5">被过滤的内容不隐藏，改为标记显示命中原因</p>
         </div>
         <button
-          onClick={() => setSettings(s => ({ ...s, debugMode: !s.debugMode }))}
+          onClick={() => {
+            const next = { ...settings, debugMode: !settings.debugMode }
+            setSettings(next)
+            storage.setSettings({ ...next, model: isCustom && customModel ? customModel : next.model })
+          }}
           className={`relative w-10 h-5 rounded-full transition-colors ${
             settings.debugMode ? 'bg-[#fb7299]' : 'bg-gray-300'
           }`}
