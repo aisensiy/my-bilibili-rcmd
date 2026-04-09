@@ -17,6 +17,7 @@ interface FilterData {
   }
   keywords: string[]
   disinterestedBvids: Set<string>
+  debugMode: boolean
 }
 
 interface PlayRecordPayload {
@@ -37,6 +38,7 @@ let filterData: FilterData = {
   profile: { interests: [], disinterests: [], blockedUps: [] },
   keywords: [],
   disinterestedBvids: new Set(),
+  debugMode: false,
 }
 
 // ==================== Storage helpers ====================
@@ -49,8 +51,8 @@ function storageSet(data: Record<string, any>): Promise<void> {
 }
 
 async function loadFilterData(): Promise<void> {
-  const { userProfile = {}, blockedKeywords = [], actions = [] } = await storageGet([
-    'userProfile', 'blockedKeywords', 'actions',
+  const { userProfile = {}, blockedKeywords = [], actions = [], settings = {} } = await storageGet([
+    'userProfile', 'blockedKeywords', 'actions', 'settings',
   ])
 
   const disinterestedBvids = new Set<string>(
@@ -67,6 +69,7 @@ async function loadFilterData(): Promise<void> {
     },
     keywords: blockedKeywords,
     disinterestedBvids,
+    debugMode: settings.debugMode ?? false,
   }
 }
 
@@ -181,6 +184,24 @@ const CONTENT_STYLE = `
 .video-page-card-small .bf-ext-actions {
   bottom: 4px;
   right: 4px;
+}
+.bf-ext-debug-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 998;
+  pointer-events: none;
+}
+.bf-ext-debug-reason {
+  color: #fff;
+  font-size: 12px;
+  padding: 4px 10px;
+  background: rgba(251, 114, 153, 0.85);
+  border-radius: 4px;
+  pointer-events: none;
 }
 `
 
@@ -332,6 +353,17 @@ function injectButtons(info: CardInfo, isHomepage: boolean): void {
   wrap.appendChild(container)
 }
 
+function injectDebugOverlay(el: HTMLElement, reason: string): void {
+  const overlay = document.createElement('div')
+  overlay.className = 'bf-ext-debug-overlay'
+  const reasonEl = document.createElement('span')
+  reasonEl.className = 'bf-ext-debug-reason'
+  reasonEl.textContent = reason
+  overlay.appendChild(reasonEl)
+  el.style.position = 'relative'
+  el.appendChild(overlay)
+}
+
 // ==================== Process cards ====================
 function processCard(el: HTMLElement, isHomepage: boolean): void {
   if (el.dataset.bfDone) return
@@ -346,8 +378,12 @@ function processCard(el: HTMLElement, isHomepage: boolean): void {
   const hideReason = shouldHide(info)
   if (hideReason) {
     LOG(`隐藏视频 [${hideReason}]`, `「${info.title}」- ${info.upName}`)
-    el.classList.add('bf-ext-hidden-card')
-    return
+    if (filterData.debugMode) {
+      injectDebugOverlay(el, hideReason)
+    } else {
+      el.classList.add('bf-ext-hidden-card')
+      return
+    }
   }
 
   injectButtons(info, isHomepage)
@@ -356,6 +392,17 @@ function processCard(el: HTMLElement, isHomepage: boolean): void {
 function processAllCards(): void {
   document.querySelectorAll<HTMLElement>(HOMEPAGE_CARD_SELECTOR).forEach(el => processCard(el, true))
   document.querySelectorAll<HTMLElement>(VIDEO_PAGE_CARD_SELECTOR).forEach(el => processCard(el, false))
+}
+
+function resetAllCards(): void {
+  document.querySelectorAll<HTMLElement>('.bf-ext-hidden-card').forEach(el => {
+    el.classList.remove('bf-ext-hidden-card')
+  })
+  document.querySelectorAll('.bf-ext-debug-overlay').forEach(el => el.remove())
+  document.querySelectorAll<HTMLElement>('[data-bf-done]').forEach(el => {
+    delete el.dataset.bfDone
+  })
+  document.querySelectorAll<HTMLElement>('.bf-ext-actions').forEach(el => el.remove())
 }
 
 // ==================== Video watch tracker ====================
@@ -548,12 +595,9 @@ async function init(): Promise<void> {
 
   // Re-filter when storage changes (e.g., popup updates profile/keywords)
   chrome.storage.onChanged.addListener(async (changes) => {
-    if (changes.userProfile || changes.blockedKeywords || changes.actions) {
+    if (changes.userProfile || changes.blockedKeywords || changes.actions || changes.settings) {
       await loadFilterData()
-      // Re-scan unprocessed cards (already-processed ones stay hidden if hidden)
-      document.querySelectorAll<HTMLElement>(`${HOMEPAGE_CARD_SELECTOR}:not(.bf-ext-hidden-card), ${VIDEO_PAGE_CARD_SELECTOR}:not(.bf-ext-hidden-card)`).forEach(el => {
-        delete el.dataset.bfDone
-      })
+      resetAllCards()
       processAllCards()
     }
   })
