@@ -61,11 +61,18 @@ async function loadFilterData(): Promise<void> {
       .map((a: any) => a.bvid as string)
   )
 
+  const blockedUpsFromActions = actions
+    .filter((a: any) => a.type === 'blockUp' && a.upName)
+    .map((a: any) => a.upName as string)
+  const mergedBlockedUps = Array.from(
+    new Set<string>([...(userProfile.blockedUps ?? []), ...blockedUpsFromActions])
+  )
+
   filterData = {
     profile: {
       interests: userProfile.interests ?? [],
       disinterests: userProfile.disinterests ?? [],
-      blockedUps: userProfile.blockedUps ?? [],
+      blockedUps: mergedBlockedUps,
     },
     keywords: blockedKeywords,
     disinterestedBvids,
