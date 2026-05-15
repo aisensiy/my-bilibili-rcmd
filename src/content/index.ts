@@ -185,6 +185,11 @@ const CONTENT_STYLE = `
 .bf-ext-hidden-card {
   display: none !important;
 }
+/* Hide bilibili's native "..." trigger; our buttons proxy the same actions
+ * and also forward to bilibili's feedback via the no-interest panel. */
+.bili-video-card__info--no-interest {
+  display: none !important;
+}
 .video-page-card-small {
   position: relative;
 }
@@ -298,6 +303,133 @@ function shouldHide(info: CardInfo): string | null {
   return null
 }
 
+// ==================== Native feedback bridge ====================
+// Click bilibili's own "..." menu item so the platform also receives the signal.
+
+// Exact match only — fuzzy `[class*="no-interest"]` would catch the post-feedback
+// overlay `.bili-video-card__no-interest` (display:none until feedback is sent),
+// which is a sibling of the real trigger and appears earlier in DOM order.
+const NATIVE_TRIGGER_SELECTOR = '.bili-video-card__info--no-interest'
+
+function findNativeTrigger(cardEl: HTMLElement): HTMLElement | null {
+  return cardEl.querySelector<HTMLElement>(NATIVE_TRIGGER_SELECTOR)
+}
+
+function isVisibleElement(el: HTMLElement): boolean {
+  const rect = el.getBoundingClientRect()
+  return rect.width > 0 && rect.height > 0
+}
+
+const PANEL_SELECTOR = '.bili-video-card__info--no-interest-panel'
+const PANEL_ITEM_SELECTOR = '.bili-video-card__info--no-interest-panel--item'
+
+function snapshotPanels(): Set<Element> {
+  return new Set(document.querySelectorAll(PANEL_SELECTOR))
+}
+
+function findMenuItemIn(panel: Element, menuText: string): HTMLElement | null {
+  const items = panel.querySelectorAll<HTMLElement>(PANEL_ITEM_SELECTOR)
+  for (const item of items) {
+    if (item.textContent?.trim().includes(menuText)) return item
+  }
+  return null
+}
+
+// Prefer a panel that didn't exist before our dispatch (it belongs to the
+// currently-triggered card). Fall back to any visible panel — covers the case
+// where the panel already exists and is just being re-shown.
+function findMenuItem(menuText: string, existingPanels: Set<Element>): HTMLElement | null {
+  const allPanels = document.querySelectorAll<HTMLElement>(PANEL_SELECTOR)
+  for (const panel of allPanels) {
+    if (existingPanels.has(panel)) continue
+    const item = findMenuItemIn(panel, menuText)
+    if (item && isVisibleElement(item)) return item
+  }
+  for (const panel of allPanels) {
+    const item = findMenuItemIn(panel, menuText)
+    if (item && isVisibleElement(item)) return item
+  }
+  return null
+}
+
+const HOVER_IN_EVENTS = ['pointerover', 'pointerenter', 'mouseover', 'mouseenter']
+const HOVER_OUT_EVENTS = ['pointerleave', 'pointerout', 'mouseleave', 'mouseout']
+const MAIN_WORLD_DISPATCH_ATTR = 'data-bf-ext-mw-target'
+
+let mwTokenCounter = 0
+
+// Content scripts run in an isolated world. Bilibili's Vue listeners only respond
+// to events fired from the page's main world, so we ask the main-world helper
+// (registered as a separate content script with world: "MAIN") to dispatch them.
+function dispatchHoverInMainWorld(el: HTMLElement, types: string[]): void {
+  const token = `${Date.now()}-${++mwTokenCounter}`
+  el.setAttribute(MAIN_WORLD_DISPATCH_ATTR, token)
+  window.postMessage({
+    source: 'bf-ext',
+    kind: 'dispatch-events',
+    token,
+    attr: MAIN_WORLD_DISPATCH_ATTR,
+    types,
+  }, '*')
+  // Helper consumes the request synchronously on the next microtask;
+  // clean up shortly after so subsequent dispatches don't collide.
+  setTimeout(() => el.removeAttribute(MAIN_WORLD_DISPATCH_ATTR), 50)
+}
+
+function countVisiblePanelItems(): number {
+  let n = 0
+  document.querySelectorAll<HTMLElement>('.bili-video-card__info--no-interest-panel--item').forEach(el => {
+    const r = el.getBoundingClientRect()
+    if (r.width > 0 && r.height > 0) n++
+  })
+  return n
+}
+
+async function triggerNativeFeedback(
+  cardEl: HTMLElement,
+  menuText: '内容不感兴趣' | '不想看此UP主'
+): Promise<boolean> {
+  const trigger = findNativeTrigger(cardEl)
+  if (!trigger) {
+    LOG(`原生反馈：未找到触发按钮 [${menuText}]`)
+    return false
+  }
+
+  const existingPanels = snapshotPanels()
+  LOG(`原生反馈：开始 [${menuText}] existingPanels=${existingPanels.size}`)
+
+  // Fire hover events from main world to ensure Vue listeners receive them.
+  dispatchHoverInMainWorld(cardEl, HOVER_IN_EVENTS)
+  dispatchHoverInMainWorld(trigger, HOVER_IN_EVENTS)
+
+  const deadline = Date.now() + 2000
+  let lastReport = 0
+  while (Date.now() < deadline) {
+    const item = findMenuItem(menuText, existingPanels)
+    if (item) {
+      item.click()
+      dispatchHoverInMainWorld(trigger, HOVER_OUT_EVENTS)
+      dispatchHoverInMainWorld(cardEl, HOVER_OUT_EVENTS)
+      LOG(`原生反馈：已点击 [${menuText}]`)
+      return true
+    }
+    const now = Date.now()
+    if (now - lastReport >= 300) {
+      lastReport = now
+      const panels = document.querySelectorAll(PANEL_SELECTOR).length
+      const vis = countVisiblePanelItems()
+      LOG(`原生反馈：poll panels=${panels} visibleItems=${vis} trigger.style="${trigger.getAttribute('style') ?? ''}"`)
+    }
+    await new Promise(r => setTimeout(r, 50))
+  }
+
+  const totalItems = document.querySelectorAll(PANEL_ITEM_SELECTOR).length
+  LOG(`原生反馈：超时 [${menuText}] totalItems=${totalItems} visibleItems=${countVisiblePanelItems()}`)
+  dispatchHoverInMainWorld(trigger, HOVER_OUT_EVENTS)
+  dispatchHoverInMainWorld(cardEl, HOVER_OUT_EVENTS)
+  return false
+}
+
 // ==================== Button injection ====================
 function injectButtons(info: CardInfo, isHomepage: boolean): void {
   const wrap = isHomepage
@@ -318,6 +450,8 @@ function injectButtons(info: CardInfo, isHomepage: boolean): void {
     e.stopPropagation()
     if (!info.bvid) return
     LOG(`反馈：不感兴趣`, { bvid: info.bvid, title: info.title, upName: info.upName })
+    // Forward to bilibili's native feedback so the platform also learns from this signal.
+    await triggerNativeFeedback(info.element, '内容不感兴趣')
     await saveAction({
       type: 'disinterested',
       bvid: info.bvid,
@@ -337,6 +471,7 @@ function injectButtons(info: CardInfo, isHomepage: boolean): void {
     e.stopPropagation()
     if (!info.upName) return
     LOG(`反馈：屏蔽UP主「${info.upName}」`, { uid: info.uid })
+    await triggerNativeFeedback(info.element, '不想看此UP主')
     await saveAction({
       type: 'blockUp',
       upName: info.upName,

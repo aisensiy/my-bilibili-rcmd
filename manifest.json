@@ -15,6 +15,12 @@
   "content_scripts": [
     {
       "matches": ["https://www.bilibili.com/*"],
+      "js": ["src/content/main-world-helper.ts"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://www.bilibili.com/*"],
       "js": ["src/content/index.ts"],
       "run_at": "document_idle"
     }
