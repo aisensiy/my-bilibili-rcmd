@@ -147,10 +147,32 @@ const CONTENT_STYLE = `
   z-index: 999;
   pointer-events: none;
 }
-.bili-video-card:hover .bf-ext-actions,
-.video-page-card-small:hover .bf-ext-actions {
+.bili-video-card:hover .bf-ext-actions {
   opacity: 1;
   pointer-events: all;
+}
+/* Sidebar buttons live in a body-attached portal because appending a positioned
+ * child to .info / .video-page-card-small triggers a layout watcher inside
+ * bilibili's right-rail Vue 2 tree, which then re-renders the slot containing
+ * #biliMainHeader and tears down the Vue 3 header app. */
+#bf-ext-portal {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+}
+.bf-ext-actions-portal {
+  position: absolute;
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+.bf-ext-actions-portal--show {
+  opacity: 1;
+  pointer-events: auto;
 }
 .bf-ext-btn {
   display: inline-flex;
@@ -189,13 +211,6 @@ const CONTENT_STYLE = `
  * and also forward to bilibili's feedback via the no-interest panel. */
 .bili-video-card__info--no-interest {
   display: none !important;
-}
-.video-page-card-small {
-  position: relative;
-}
-.video-page-card-small .bf-ext-actions {
-  bottom: 4px;
-  right: 4px;
 }
 .bf-ext-debug-overlay {
   position: absolute;
@@ -431,16 +446,20 @@ async function triggerNativeFeedback(
 }
 
 // ==================== Button injection ====================
-function injectButtons(info: CardInfo, isHomepage: boolean): void {
-  const wrap = isHomepage
-    ? info.element.querySelector<HTMLElement>('.bili-video-card__info')
-    : info.element.querySelector<HTMLElement>('.info')
+const PORTAL_ID = 'bf-ext-portal'
+const portalEntries = new Map<HTMLElement, HTMLElement>()
 
-  if (!wrap) return
+function ensurePortal(): HTMLElement {
+  let portal = document.getElementById(PORTAL_ID)
+  if (!portal) {
+    portal = document.createElement('div')
+    portal.id = PORTAL_ID
+    document.body.appendChild(portal)
+  }
+  return portal
+}
 
-  const container = document.createElement('div')
-  container.className = 'bf-ext-actions'
-
+function buildActionButtons(info: CardInfo, container: HTMLElement): void {
   const disBtn = document.createElement('button')
   disBtn.className = 'bf-ext-btn bf-ext-btn--disinterest'
   disBtn.textContent = '不感兴趣'
@@ -450,7 +469,6 @@ function injectButtons(info: CardInfo, isHomepage: boolean): void {
     e.stopPropagation()
     if (!info.bvid) return
     LOG(`反馈：不感兴趣`, { bvid: info.bvid, title: info.title, upName: info.upName })
-    // Forward to bilibili's native feedback so the platform also learns from this signal.
     await triggerNativeFeedback(info.element, '内容不感兴趣')
     await saveAction({
       type: 'disinterested',
@@ -460,6 +478,7 @@ function injectButtons(info: CardInfo, isHomepage: boolean): void {
       timestamp: Date.now(),
     })
     info.element.classList.add('bf-ext-hidden-card')
+    removePortalEntry(info.element)
   })
 
   const upBtn = document.createElement('button')
@@ -478,21 +497,97 @@ function injectButtons(info: CardInfo, isHomepage: boolean): void {
       uid: info.uid,
       timestamp: Date.now(),
     })
-    // Hide all cards from this UP
     let hiddenCount = 0
     document.querySelectorAll<HTMLElement>('[data-bf-upname]').forEach(el => {
-      if (el.dataset.bfUpname === info.upName) { el.classList.add('bf-ext-hidden-card'); hiddenCount++ }
+      if (el.dataset.bfUpname === info.upName) {
+        el.classList.add('bf-ext-hidden-card')
+        removePortalEntry(el)
+        hiddenCount++
+      }
     })
     LOG(`已隐藏「${info.upName}」的 ${hiddenCount} 个卡片`)
     info.element.classList.add('bf-ext-hidden-card')
+    removePortalEntry(info.element)
   })
 
   container.appendChild(disBtn)
   container.appendChild(upBtn)
+}
 
-  // Make wrap relative for absolute positioning
-  wrap.style.position = 'relative'
+function injectHomepageButtons(info: CardInfo): void {
+  const wrap = info.element.querySelector<HTMLElement>('.bili-video-card__info')
+  if (!wrap) return
+  const container = document.createElement('div')
+  container.className = 'bf-ext-actions'
+  buildActionButtons(info, container)
   wrap.appendChild(container)
+}
+
+// Bilibili's right-rail Vue 2 tree has a layout watcher that fires when any
+// visible positioned child is appended into a card's subtree. The reaction
+// later re-renders the slot containing #biliMainHeader, which destroys the
+// Vue 3 header app. Mounting the sidebar buttons in a body-attached portal
+// keeps the card subtree untouched.
+function injectSidebarButtons(info: CardInfo): void {
+  const portal = ensurePortal()
+  const container = document.createElement('div')
+  container.className = 'bf-ext-actions-portal'
+  buildActionButtons(info, container)
+  portal.appendChild(container)
+
+  // Event listeners on the card don't mutate the DOM, so they don't trip the
+  // sidebar watcher.
+  const show = () => container.classList.add('bf-ext-actions-portal--show')
+  const hide = () => container.classList.remove('bf-ext-actions-portal--show')
+  info.element.addEventListener('mouseenter', show)
+  info.element.addEventListener('mouseleave', hide)
+  // Keep the buttons interactive even when the cursor crosses onto them.
+  container.addEventListener('mouseenter', show)
+  container.addEventListener('mouseleave', hide)
+
+  portalEntries.set(info.element, container)
+  positionPortalEntry(info.element, container)
+  schedulePortalSync()
+}
+
+function positionPortalEntry(card: HTMLElement, container: HTMLElement): void {
+  const rect = card.getBoundingClientRect()
+  if (rect.bottom < 0 || rect.top > window.innerHeight ||
+      rect.right < 0 || rect.left > window.innerWidth) {
+    container.style.visibility = 'hidden'
+    return
+  }
+  container.style.visibility = ''
+  container.style.left = `${rect.right - container.offsetWidth - 4}px`
+  container.style.top = `${rect.bottom - container.offsetHeight - 4}px`
+}
+
+function removePortalEntry(card: HTMLElement): void {
+  const container = portalEntries.get(card)
+  if (!container) return
+  container.remove()
+  portalEntries.delete(card)
+}
+
+let portalSyncRaf = 0
+function schedulePortalSync(): void {
+  if (portalSyncRaf) return
+  portalSyncRaf = requestAnimationFrame(() => {
+    portalSyncRaf = 0
+    for (const [card, container] of portalEntries) {
+      if (!document.contains(card)) {
+        container.remove()
+        portalEntries.delete(card)
+        continue
+      }
+      positionPortalEntry(card, container)
+    }
+  })
+}
+
+function setupPortalListeners(): void {
+  window.addEventListener('scroll', schedulePortalSync, { passive: true, capture: true })
+  window.addEventListener('resize', schedulePortalSync, { passive: true })
 }
 
 function injectDebugOverlay(el: HTMLElement, reason: string): void {
@@ -528,7 +623,8 @@ function processCard(el: HTMLElement, isHomepage: boolean): void {
     }
   }
 
-  injectButtons(info, isHomepage)
+  if (isHomepage) injectHomepageButtons(info)
+  else injectSidebarButtons(info)
 }
 
 function processAllCards(): void {
@@ -545,6 +641,8 @@ function resetAllCards(): void {
     delete el.dataset.bfDone
   })
   document.querySelectorAll<HTMLElement>('.bf-ext-actions').forEach(el => el.remove())
+  for (const container of portalEntries.values()) container.remove()
+  portalEntries.clear()
 }
 
 // ==================== Video watch tracker ====================
@@ -684,6 +782,7 @@ function startObserver(): void {
   observer?.disconnect()
   observer = new MutationObserver(mutations => {
     let needsScan = false
+    let portalDirty = false
     for (const m of mutations) {
       for (const node of m.addedNodes) {
         if (node.nodeType !== Node.ELEMENT_NODE) continue
@@ -696,8 +795,11 @@ function startObserver(): void {
           }
         }
       }
+      if (!portalDirty && m.removedNodes.length > 0) portalDirty = true
     }
     if (needsScan) processAllCards()
+    // Sidebar cards may have been moved or removed; reconcile portal positions.
+    if (portalDirty || needsScan) schedulePortalSync()
   })
   const target = isVideoPage()
     ? document.querySelector('.right-container') ?? document.body
@@ -751,6 +853,7 @@ async function init(): Promise<void> {
   await waitForBiliHeaderReady()
   setupWatchTracker()
   ensureContentStyles()
+  setupPortalListeners()
   processAllCards()
   startObserver()
   watchNavigation()
