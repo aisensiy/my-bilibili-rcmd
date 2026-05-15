@@ -727,8 +727,28 @@ function watchNavigation(): void {
 }
 
 // ==================== Init ====================
+// Bilibili's bili-header (Vue 3) double-mounts on the video page: once via the
+// router's onReady and once via a Vue component's mounted hook. Running our
+// content-script work concurrently with that race shifts microtask timing
+// enough that Vue's patch step hits a stale DOM reference (nextSibling of null)
+// and tears down the header it had just rendered, leaving #biliMainHeader empty.
+// Holding off until the header is rendered and the race window has settled
+// avoids the trigger entirely.
+async function waitForBiliHeaderReady(): Promise<void> {
+  const deadlineAt = Date.now() + 5_000
+  while (Date.now() < deadlineAt) {
+    const mainHeader = document.getElementById('biliMainHeader')
+    if (mainHeader && mainHeader.children.length > 0) break
+    // Non-video pages don't have #biliMainHeader; .bili-header is enough.
+    if (!mainHeader && document.querySelector('.bili-header')) break
+    await new Promise(r => setTimeout(r, 100))
+  }
+  await new Promise(r => setTimeout(r, 500))
+}
+
 async function init(): Promise<void> {
   await loadFilterData()
+  await waitForBiliHeaderReady()
   setupWatchTracker()
   ensureContentStyles()
   processAllCards()
