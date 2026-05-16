@@ -43,6 +43,9 @@ export default function HistoryTab() {
 
   return (
     <div className="p-4 overflow-y-auto h-full">
+      <p className="text-[11px] text-gray-400 mb-3 leading-relaxed">
+        AI 以这些行为为依据生成你的画像
+      </p>
       {/* Stats */}
       <div className="grid grid-cols-3 gap-2 mb-4">
         <StatCard label="观看视频" value={stats.playCount} />
