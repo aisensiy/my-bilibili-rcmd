@@ -1,95 +1,111 @@
 import { useEffect, useState } from 'react'
 import { storage, type Settings, DEFAULT_SETTINGS } from '../lib/storage'
-
-const PRESET_MODELS = [
-  { value: 'google/gemini-2.0-flash-exp:free', label: 'Gemini 2.0 Flash（免费）' },
-  { value: 'google/gemini-flash-1.5', label: 'Gemini Flash 1.5' },
-  { value: 'openai/gpt-4o-mini', label: 'GPT-4o Mini' },
-  { value: 'anthropic/claude-3-5-haiku', label: 'Claude 3.5 Haiku' },
-  { value: 'custom', label: '自定义...' },
-]
+import { PROVIDERS, type ProviderId, callProvider } from '../../lib/providers'
 
 type TestStatus = 'idle' | 'testing' | 'ok' | 'fail'
+
+const PROVIDER_IDS: ProviderId[] = ['openrouter', 'glm', 'deepseek']
 
 export default function SettingsTab() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
   const [saved, setSaved] = useState(false)
   const [showKey, setShowKey] = useState(false)
-  const [customModel, setCustomModel] = useState('')
   const [testStatus, setTestStatus] = useState<TestStatus>('idle')
   const [testMsg, setTestMsg] = useState('')
 
-  const isCustom = !PRESET_MODELS.slice(0, -1).some(m => m.value === (settings as any).model)
-
   useEffect(() => {
-    storage.getSettings().then(s => {
-      setSettings(s)
-      if (!PRESET_MODELS.slice(0, -1).some(m => m.value === (s as any).model)) {
-        setCustomModel((s as any).model)
-      }
-    })
+    storage.getSettings().then(setSettings)
   }, [])
 
+  const active = settings.activeProvider
+  const spec = PROVIDERS[active]
+  const cfg = settings.providers[active]
+
+  const updateProviderCfg = (patch: Partial<typeof cfg>) => {
+    setSettings(s => ({
+      ...s,
+      providers: { ...s.providers, [active]: { ...s.providers[active], ...patch } },
+    }))
+  }
+
+  const switchProvider = (next: ProviderId) => {
+    setSettings(s => ({ ...s, activeProvider: next }))
+    setTestStatus('idle')
+    setTestMsg('')
+  }
+
   const testConnection = async () => {
-    const key = (settings as any).openrouterKey.trim()
-    const model = (isCustom && customModel) ? customModel : (settings as any).model
+    const key = cfg.apiKey.trim()
     if (!key) { setTestStatus('fail'); setTestMsg('请先填写 API Key'); return }
+    if (!cfg.model.trim()) { setTestStatus('fail'); setTestMsg('请先填写模型 id'); return }
 
     setTestStatus('testing')
     setTestMsg('')
-    try {
-      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${key}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://github.com/bilibili-recommand',
-          'X-Title': 'Bilibili Recommand',
-        },
-        body: JSON.stringify({
-          model,
-          messages: [{ role: 'user', content: '用一句话说你好，不超过10个字。' }],
-          max_tokens: 30,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        setTestStatus('fail')
-        setTestMsg(data?.error?.message ?? `HTTP ${res.status}`)
-      } else {
-        const reply = data.choices?.[0]?.message?.content ?? '（无响应）'
-        setTestStatus('ok')
-        setTestMsg(`模型回复：${reply}`)
-      }
-    } catch (e) {
+
+    const result = await callProvider({
+      provider: active,
+      apiKey: key,
+      model: cfg.model.trim(),
+      messages: [{ role: 'user', content: '用一句话说你好，不超过10个字。' }],
+      maxTokens: 30,
+    })
+
+    if (!result.ok) {
       setTestStatus('fail')
-      setTestMsg(String(e))
+      setTestMsg(result.errorMessage ?? `HTTP ${result.errorStatus ?? '???'}`)
+    } else {
+      setTestStatus('ok')
+      setTestMsg(`模型回复：${result.content}`)
     }
   }
 
   const save = async () => {
-    const toSave = {
-      ...settings,
-      model: isCustom && customModel ? customModel : (settings as any).model,
-    } as any
-    await storage.setSettings(toSave)
+    await storage.setSettings(settings)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
 
+  const reopenOnboarding = async () => {
+    await storage.setSettings({ ...settings, onboardingComplete: false })
+    window.close()
+  }
+
   return (
     <div className="p-4 overflow-y-auto h-full">
+      {/* AI 提供商 */}
+      <div className="mb-4">
+        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+          AI 提供商
+        </label>
+        <div className="flex gap-1.5 mb-2">
+          {PROVIDER_IDS.map(pid => (
+            <button
+              key={pid}
+              onClick={() => switchProvider(pid)}
+              className={`flex-1 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                active === pid
+                  ? 'border-[#fb7299] text-[#fb7299] bg-[#fff5f8]'
+                  : 'border-gray-200 text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {PROVIDERS[pid].label}
+            </button>
+          ))}
+        </div>
+        <p className="text-[10px] text-gray-400">{spec.blurb}</p>
+      </div>
+
       {/* API Key */}
       <div className="mb-4">
         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-          OpenRouter API Key
+          {spec.label} API Key
         </label>
         <div className="flex gap-1.5">
           <input
             type={showKey ? 'text' : 'password'}
-            value={(settings as any).openrouterKey}
-            onChange={e => setSettings(s => ({ ...s, openrouterKey: e.target.value } as any))}
-            placeholder="sk-or-..."
+            value={cfg.apiKey}
+            onChange={e => updateProviderCfg({ apiKey: e.target.value })}
+            placeholder="填入你的 API Key"
             className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#fb7299] font-mono"
           />
           <button
@@ -101,44 +117,29 @@ export default function SettingsTab() {
         </div>
         <p className="text-[10px] text-gray-400 mt-1">
           Key 仅存储在本地，不会上传任何服务器。
-          <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer"
-            className="text-[#00a1d6] ml-1">获取 Key →</a>
+          <a href={spec.keyUrl} target="_blank" rel="noreferrer"
+            className="text-[#00a1d6] ml-1">去 {spec.label} 拿 Key →</a>
         </p>
       </div>
 
-      {/* Model */}
+      {/* 模型 */}
       <div className="mb-4">
         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
           分析模型
         </label>
-        <select
-          value={isCustom ? 'custom' : (settings as any).model}
-          onChange={e => {
-            const v = e.target.value
-            if (v === 'custom') {
-              setSettings(s => ({ ...s, model: customModel || '' } as any))
-            } else {
-              setSettings(s => ({ ...s, model: v } as any))
-            }
-          }}
-          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#fb7299] bg-white"
-        >
-          {PRESET_MODELS.map(m => (
-            <option key={m.value} value={m.value}>{m.label}</option>
-          ))}
-        </select>
-        {isCustom && (
-          <input
-            type="text"
-            value={customModel}
-            onChange={e => { setCustomModel(e.target.value); setSettings(s => ({ ...s, model: e.target.value } as any)) }}
-            placeholder="例：anthropic/claude-3-opus"
-            className="mt-1.5 w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#fb7299] font-mono"
-          />
-        )}
+        <input
+          type="text"
+          value={cfg.model}
+          onChange={e => updateProviderCfg({ model: e.target.value })}
+          placeholder={spec.modelPlaceholder}
+          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#fb7299] font-mono"
+        />
+        <p className="text-[10px] text-gray-400 mt-1">
+          手输 model id。可用清单见 {spec.label} 官方文档；下方"测试 API 连接"可验证。
+        </p>
       </div>
 
-      {/* Test connection */}
+      {/* 测试连接 */}
       <div className="mb-4">
         <button
           onClick={testConnection}
@@ -159,37 +160,37 @@ export default function SettingsTab() {
         )}
       </div>
 
-      {/* Threshold */}
+      {/* 阈值 */}
       <div className="mb-6">
         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
           自动触发阈值：每 <span className="text-[#fb7299]">{settings.triggerThreshold}</span> 条新行为
         </label>
         <input
           type="range"
-          min={5}
+          min={3}
           max={50}
-          step={5}
+          step={1}
           value={settings.triggerThreshold}
           onChange={e => setSettings(s => ({ ...s, triggerThreshold: Number(e.target.value) }))}
           className="w-full accent-[#fb7299]"
         />
         <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
-          <span>5（更频繁）</span>
+          <span>3（更频繁）</span>
           <span>50（更节省）</span>
         </div>
       </div>
 
-      {/* Debug mode */}
+      {/* 调试模式 */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">调试模式</div>
+          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">调试模式（开发者用）</div>
           <p className="text-[10px] text-gray-400 mt-0.5">被过滤的内容不隐藏，改为标记显示命中原因</p>
         </div>
         <button
           onClick={() => {
             const next = { ...settings, debugMode: !settings.debugMode }
             setSettings(next)
-            storage.setSettings({ ...next, model: isCustom && customModel ? customModel : (next as any).model } as any)
+            storage.setSettings(next)
           }}
           className={`relative w-10 h-5 rounded-full transition-colors ${
             settings.debugMode ? 'bg-[#fb7299]' : 'bg-gray-300'
@@ -211,9 +212,20 @@ export default function SettingsTab() {
         {saved ? '已保存 ✓' : '保存设置'}
       </button>
 
-      {/* Danger zone */}
+      {/* 引导 */}
       <div className="mt-6 pt-4 border-t border-gray-100">
-        <div className="text-xs font-semibold text-gray-400 mb-2">危险操作</div>
+        <button
+          onClick={reopenOnboarding}
+          className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
+        >
+          重新查看引导
+        </button>
+      </div>
+
+      {/* 危险操作 */}
+      <div className="mt-4 pt-4 border-t border-gray-100">
+        <div className="text-xs font-semibold text-gray-400 mb-1">危险操作</div>
+        <p className="text-[10px] text-gray-400 mb-2">所有数据只在本地。一键清除不可撤销。</p>
         <button
           onClick={async () => {
             if (confirm('确认清除所有记录和画像？此操作不可撤销。')) {
