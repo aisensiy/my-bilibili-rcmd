@@ -1,12 +1,14 @@
 {
   "manifest_version": 3,
-  "name": "Bilibili 推荐优化",
+  "name": "我的 Bilibili 推荐",
   "version": "1.0.0",
-  "description": "通过行为数据构建个人兴趣画像，智能过滤 Bilibili 推荐内容",
+  "description": "用 LLM 看你的 B 站行为生成兴趣画像，自动过滤推荐流",
   "permissions": ["storage"],
   "host_permissions": [
     "https://*.bilibili.com/*",
-    "https://openrouter.ai/*"
+    "https://openrouter.ai/*",
+    "https://open.bigmodel.cn/*",
+    "https://api.deepseek.com/*"
   ],
   "background": {
     "service_worker": "src/background/service-worker.ts",
@@ -27,7 +29,7 @@
   ],
   "action": {
     "default_popup": "src/popup/index.html",
-    "default_title": "Bilibili 推荐优化",
+    "default_title": "我的 Bilibili 推荐",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",

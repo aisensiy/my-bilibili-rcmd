@@ -1,7 +1,7 @@
 {
-  "name": "bilibili-recommand",
+  "name": "my-bilibili-rcmd",
   "version": "1.0.0",
-  "description": "通过行为数据构建个人兴趣画像，智能过滤 Bilibili 推荐内容",
+  "description": "用 LLM 看你的 B 站行为生成兴趣画像，自动过滤推荐流",
   "type": "module",
   "scripts": {
     "dev": "vite",

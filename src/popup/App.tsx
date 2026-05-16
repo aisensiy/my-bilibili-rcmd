@@ -24,7 +24,7 @@ export default function App() {
           style={{ background: '#fb7299' }}>
           B
         </div>
-        <span className="text-sm font-semibold text-gray-800">推荐优化</span>
+        <span className="text-sm font-semibold text-gray-800">我的 Bilibili 推荐</span>
       </div>
 
       {/* Tabs */}
