@@ -1,4 +1,4 @@
-// Bilibili 推荐优化 - Content Script
+// 我的 Bilibili 推荐 - Content Script
 // Vanilla TS: avoids React instance conflicts with Bilibili's own Vue/React
 
 interface CardInfo {

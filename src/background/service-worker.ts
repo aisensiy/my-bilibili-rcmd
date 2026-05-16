@@ -1,6 +1,8 @@
 import type { Action, UserProfile } from '../popup/lib/storage'
 import { callProvider } from '../lib/providers'
 
+// Intentionally a local copy — service worker shouldn't import popup-only modules.
+// Keep `analysis` in sync with src/popup/lib/storage.ts:DEFAULT_PROFILE.
 const DEFAULT_PROFILE: UserProfile = {
   interests: [],
   disinterests: [],

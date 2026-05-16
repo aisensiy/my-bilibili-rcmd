@@ -68,7 +68,7 @@ export const DEFAULT_PROFILE: UserProfile = {
   interests: [],
   disinterests: [],
   blockedUps: [],
-  analysis: '尚未分析。请在设置中填入 OpenRouter API Key，然后点击「立即分析」。',
+  analysis: '尚未分析。',
   lastUpdated: 0,
 }
 
