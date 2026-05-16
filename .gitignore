@@ -3,3 +3,4 @@ dist/
 .claude/
 .DS_Store
 *.log
+docs/superpowers/
