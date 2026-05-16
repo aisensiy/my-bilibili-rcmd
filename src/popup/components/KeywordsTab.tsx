@@ -25,7 +25,8 @@ export default function KeywordsTab() {
   return (
     <div className="p-4 overflow-y-auto h-full">
       <div className="text-xs text-gray-500 mb-4 leading-relaxed">
-        标题中包含以下关键词的视频将被自动隐藏。比「兴趣画像」更直接，立即生效。
+        你手输的硬规则，AI 不会改动，立即生效。<br />
+        适合屏蔽 AI 还没学到的临时热点（比如某个突发事件）。
       </div>
 
       {/* Input */}
