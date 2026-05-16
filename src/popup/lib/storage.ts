@@ -64,7 +64,7 @@ export const DEFAULT_PROFILE: UserProfile = {
 export const DEFAULT_SETTINGS: Settings = {
   openrouterKey: '',
   model: 'google/gemini-2.0-flash-exp:free',
-  triggerThreshold: 10,
+  triggerThreshold: 5,
   debugMode: false,
 }
 
