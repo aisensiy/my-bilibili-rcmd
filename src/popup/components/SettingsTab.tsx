@@ -19,20 +19,20 @@ export default function SettingsTab() {
   const [testStatus, setTestStatus] = useState<TestStatus>('idle')
   const [testMsg, setTestMsg] = useState('')
 
-  const isCustom = !PRESET_MODELS.slice(0, -1).some(m => m.value === settings.model)
+  const isCustom = !PRESET_MODELS.slice(0, -1).some(m => m.value === (settings as any).model)
 
   useEffect(() => {
     storage.getSettings().then(s => {
       setSettings(s)
-      if (!PRESET_MODELS.slice(0, -1).some(m => m.value === s.model)) {
-        setCustomModel(s.model)
+      if (!PRESET_MODELS.slice(0, -1).some(m => m.value === (s as any).model)) {
+        setCustomModel((s as any).model)
       }
     })
   }, [])
 
   const testConnection = async () => {
-    const key = settings.openrouterKey.trim()
-    const model = (isCustom && customModel) ? customModel : settings.model
+    const key = (settings as any).openrouterKey.trim()
+    const model = (isCustom && customModel) ? customModel : (settings as any).model
     if (!key) { setTestStatus('fail'); setTestMsg('请先填写 API Key'); return }
 
     setTestStatus('testing')
@@ -70,8 +70,8 @@ export default function SettingsTab() {
   const save = async () => {
     const toSave = {
       ...settings,
-      model: isCustom && customModel ? customModel : settings.model,
-    }
+      model: isCustom && customModel ? customModel : (settings as any).model,
+    } as any
     await storage.setSettings(toSave)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
@@ -87,8 +87,8 @@ export default function SettingsTab() {
         <div className="flex gap-1.5">
           <input
             type={showKey ? 'text' : 'password'}
-            value={settings.openrouterKey}
-            onChange={e => setSettings(s => ({ ...s, openrouterKey: e.target.value }))}
+            value={(settings as any).openrouterKey}
+            onChange={e => setSettings(s => ({ ...s, openrouterKey: e.target.value } as any))}
             placeholder="sk-or-..."
             className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#fb7299] font-mono"
           />
@@ -112,13 +112,13 @@ export default function SettingsTab() {
           分析模型
         </label>
         <select
-          value={isCustom ? 'custom' : settings.model}
+          value={isCustom ? 'custom' : (settings as any).model}
           onChange={e => {
             const v = e.target.value
             if (v === 'custom') {
-              setSettings(s => ({ ...s, model: customModel || '' }))
+              setSettings(s => ({ ...s, model: customModel || '' } as any))
             } else {
-              setSettings(s => ({ ...s, model: v }))
+              setSettings(s => ({ ...s, model: v } as any))
             }
           }}
           className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#fb7299] bg-white"
@@ -131,7 +131,7 @@ export default function SettingsTab() {
           <input
             type="text"
             value={customModel}
-            onChange={e => { setCustomModel(e.target.value); setSettings(s => ({ ...s, model: e.target.value })) }}
+            onChange={e => { setCustomModel(e.target.value); setSettings(s => ({ ...s, model: e.target.value } as any)) }}
             placeholder="例：anthropic/claude-3-opus"
             className="mt-1.5 w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#fb7299] font-mono"
           />
@@ -189,7 +189,7 @@ export default function SettingsTab() {
           onClick={() => {
             const next = { ...settings, debugMode: !settings.debugMode }
             setSettings(next)
-            storage.setSettings({ ...next, model: isCustom && customModel ? customModel : next.model })
+            storage.setSettings({ ...next, model: isCustom && customModel ? customModel : (next as any).model } as any)
           }}
           className={`relative w-10 h-5 rounded-full transition-colors ${
             settings.debugMode ? 'bg-[#fb7299]' : 'bg-gray-300'

@@ -1,4 +1,5 @@
 // Shared types and storage utilities
+import type { ProviderId } from '../../lib/providers'
 
 export interface PlayAction {
   type: 'play'
@@ -38,11 +39,21 @@ export interface UserProfile {
   lastUpdated: number
 }
 
+export interface ProviderConfig {
+  apiKey: string
+  model: string  // 由用户手输；初始为空
+}
+
 export interface Settings {
-  openrouterKey: string
-  model: string
+  activeProvider: ProviderId
+  providers: {
+    openrouter: ProviderConfig
+    glm: ProviderConfig
+    deepseek: ProviderConfig
+  }
   triggerThreshold: number
   debugMode: boolean
+  onboardingComplete: boolean
 }
 
 export interface StorageData {
@@ -62,10 +73,15 @@ export const DEFAULT_PROFILE: UserProfile = {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  openrouterKey: '',
-  model: 'google/gemini-2.0-flash-exp:free',
+  activeProvider: 'openrouter',
+  providers: {
+    openrouter: { apiKey: '', model: '' },
+    glm: { apiKey: '', model: '' },
+    deepseek: { apiKey: '', model: '' },
+  },
   triggerThreshold: 5,
   debugMode: false,
+  onboardingComplete: false,
 }
 
 function get<K extends keyof StorageData>(keys: K[]): Promise<Pick<StorageData, K>> {
@@ -101,8 +117,41 @@ export const storage = {
   },
 
   async getSettings(): Promise<Settings> {
-    const { settings = DEFAULT_SETTINGS } = await get(['settings'])
-    return { ...DEFAULT_SETTINGS, ...settings }
+    const { settings } = await get(['settings'])
+    if (!settings) return DEFAULT_SETTINGS
+
+    // 检测旧 schema：有 openrouterKey 字段 → 迁移
+    const legacy = settings as unknown as Record<string, unknown>
+    // 新 schema 一定有 providers 字段；缺失就当成 legacy 处理
+    if (!('providers' in legacy)) {
+      const migrated: Settings = {
+        ...DEFAULT_SETTINGS,
+        activeProvider: 'openrouter',
+        providers: {
+          openrouter: {
+            apiKey: typeof legacy.openrouterKey === 'string' ? legacy.openrouterKey : '',
+            model: typeof legacy.model === 'string' ? legacy.model : '',
+          },
+          glm: { apiKey: '', model: '' },
+          deepseek: { apiKey: '', model: '' },
+        },
+        triggerThreshold: typeof legacy.triggerThreshold === 'number' ? legacy.triggerThreshold : 5,
+        debugMode: typeof legacy.debugMode === 'boolean' ? legacy.debugMode : false,
+        onboardingComplete: true,  // 老用户已经知道这是干啥的，不需要再走 onboarding
+      }
+      await set({ settings: migrated })
+      return migrated
+    }
+
+    // 新 schema：用默认值兜底缺字段
+    return {
+      ...DEFAULT_SETTINGS,
+      ...(settings as Settings),
+      providers: {
+        ...DEFAULT_SETTINGS.providers,
+        ...((settings as Settings).providers ?? {}),
+      },
+    }
   },
 
   async setSettings(settings: Settings): Promise<void> {
