@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import ProfileTab from './components/ProfileTab'
 import HistoryTab from './components/HistoryTab'
 import KeywordsTab from './components/KeywordsTab'
 import SettingsTab from './components/SettingsTab'
+import OnboardingScreen from './components/OnboardingScreen'
+import { storage } from './lib/storage'
 
 type Tab = 'profile' | 'history' | 'keywords' | 'settings'
 
@@ -15,19 +17,39 @@ const TABS: { id: Tab; label: string }[] = [
 
 export default function App() {
   const [active, setActive] = useState<Tab>('profile')
+  const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    storage.getSettings().then(s => setOnboardingDone(s.onboardingComplete))
+  }, [])
+
+  if (onboardingDone === null) {
+    return <div className="flex items-center justify-center h-full text-xs text-gray-400">加载中...</div>
+  }
+
+  if (!onboardingDone) {
+    return (
+      <div className="flex flex-col h-full bg-white">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 bg-white">
+          <div className="w-6 h-6 rounded-md flex items-center justify-center text-white text-xs font-bold"
+            style={{ background: '#fb7299' }}>B</div>
+          <span className="text-sm font-semibold text-gray-800">我的 Bilibili 推荐</span>
+        </div>
+        <div className="flex-1 overflow-hidden">
+          <OnboardingScreen onDone={() => setOnboardingDone(true)} />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col h-full bg-white">
-      {/* Header */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 bg-white">
         <div className="w-6 h-6 rounded-md flex items-center justify-center text-white text-xs font-bold"
-          style={{ background: '#fb7299' }}>
-          B
-        </div>
+          style={{ background: '#fb7299' }}>B</div>
         <span className="text-sm font-semibold text-gray-800">我的 Bilibili 推荐</span>
       </div>
 
-      {/* Tabs */}
       <div className="flex border-b border-gray-100">
         {TABS.map(tab => (
           <button
@@ -44,7 +66,6 @@ export default function App() {
         ))}
       </div>
 
-      {/* Content */}
       <div className="flex-1 overflow-hidden">
         {active === 'profile' && <ProfileTab />}
         {active === 'history' && <HistoryTab />}
