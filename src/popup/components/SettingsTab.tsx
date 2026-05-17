@@ -8,14 +8,23 @@ const PROVIDER_IDS: ProviderId[] = ['openrouter', 'glm', 'deepseek']
 
 export default function SettingsTab() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
-  const [saved, setSaved] = useState(false)
+  // savedSnapshot 记录最近一次写入 storage 的 settings，用于判断"未保存修改"。
+  // null 表示初次加载尚未完成。
+  const [savedSnapshot, setSavedSnapshot] = useState<Settings | null>(null)
+  const [savedFlash, setSavedFlash] = useState(false)
   const [showKey, setShowKey] = useState(false)
   const [testStatus, setTestStatus] = useState<TestStatus>('idle')
   const [testMsg, setTestMsg] = useState('')
 
   useEffect(() => {
-    storage.getSettings().then(setSettings)
+    storage.getSettings().then(s => {
+      setSettings(s)
+      setSavedSnapshot(s)
+    })
   }, [])
+
+  const isDirty = savedSnapshot !== null
+    && JSON.stringify(settings) !== JSON.stringify(savedSnapshot)
 
   const active = settings.activeProvider
   const spec = PROVIDERS[active]
@@ -64,8 +73,9 @@ export default function SettingsTab() {
 
   const save = async () => {
     await storage.setSettings(settings)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    setSavedSnapshot(settings)
+    setSavedFlash(true)
+    setTimeout(() => setSavedFlash(false), 2000)
   }
 
   const reopenOnboarding = async () => {
@@ -74,7 +84,8 @@ export default function SettingsTab() {
   }
 
   return (
-    <div className="p-4 overflow-y-auto h-full">
+    <div className="h-full flex flex-col">
+      <div className="flex-1 overflow-y-auto p-4 pb-2">
       {/* AI 提供商 */}
       <div className="mb-4">
         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
@@ -194,6 +205,7 @@ export default function SettingsTab() {
             const next = { ...settings, debugMode: !settings.debugMode }
             setSettings(next)
             storage.setSettings(next)
+            setSavedSnapshot(next)
           }}
           className={`relative w-10 h-5 rounded-full transition-colors ${
             settings.debugMode ? 'bg-[#fb7299]' : 'bg-gray-300'
@@ -206,14 +218,6 @@ export default function SettingsTab() {
           />
         </button>
       </div>
-
-      <button
-        onClick={save}
-        className="w-full py-2.5 rounded-lg text-sm font-medium text-white transition-all"
-        style={{ background: saved ? '#4caf50' : '#fb7299' }}
-      >
-        {saved ? '已保存 ✓' : '保存设置'}
-      </button>
 
       {/* 引导 */}
       <div className="mt-6 pt-4 border-t border-gray-100">
@@ -239,6 +243,19 @@ export default function SettingsTab() {
           className="text-xs text-red-400 hover:text-red-600 transition-colors"
         >
           清除所有数据
+        </button>
+      </div>
+      </div>
+
+      {/* 固定底部保存栏。常驻可见，避免用户填完 key/model 后误以为已生效。 */}
+      <div className="px-4 py-3 border-t border-gray-100 bg-white">
+        <button
+          onClick={save}
+          disabled={!isDirty && !savedFlash}
+          className="w-full py-2.5 rounded-lg text-sm font-medium text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{ background: savedFlash ? '#4caf50' : isDirty ? '#fb7299' : '#9ca3af' }}
+        >
+          {savedFlash ? '已保存 ✓' : isDirty ? '保存设置（有未保存修改）' : '所有修改已保存'}
         </button>
       </div>
     </div>

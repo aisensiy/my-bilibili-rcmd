@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
-import { storage, type Action, type PlayAction } from '../lib/storage'
+import { useEffect, useRef, useState } from 'react'
+import { storage, type Action } from '../lib/storage'
+
+const PAGE_SIZE = 30
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
@@ -29,17 +31,35 @@ function formatDuration(totalSeconds?: number) {
 export default function HistoryTab() {
   const [actions, setActions] = useState<Action[]>([])
   const [stats, setStats] = useState({ playCount: 0, blockedCount: 0, avgWatchRatio: 0 })
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     const load = async () => {
       const [all, s] = await Promise.all([storage.getActions(), storage.getStats()])
-      setActions(all.slice(0, 30))
+      setActions(all)
       setStats(s)
     }
     load()
   }, [])
 
-  const plays = actions.filter((a): a is PlayAction => a.type === 'play')
+  // 滚到底自动加载下一页。storage 全量最多 500 条，一次性放进内存没压力，
+  // 这里只是控制 DOM 渲染量。
+  useEffect(() => {
+    const node = sentinelRef.current
+    if (!node) return
+    if (visibleCount >= actions.length) return
+    const io = new IntersectionObserver(entries => {
+      if (entries.some(e => e.isIntersecting)) {
+        setVisibleCount(c => Math.min(c + PAGE_SIZE, actions.length))
+      }
+    })
+    io.observe(node)
+    return () => io.disconnect()
+  }, [visibleCount, actions.length])
+
+  const visible = actions.slice(0, visibleCount)
+  const hasMore = visibleCount < actions.length
 
   return (
     <div className="p-4 overflow-y-auto h-full">
@@ -66,7 +86,7 @@ export default function HistoryTab() {
         <div className="text-xs text-gray-400 text-center py-8">暂无记录，去 Bilibili 看看吧</div>
       )}
       <div className="space-y-2">
-        {actions.map((action, i) => {
+        {visible.map((action, i) => {
           if (action.type === 'play') {
             const { pct, color } = ratio2bar(action.watchRatio)
             const watched = formatDuration(action.watchedSeconds)
@@ -120,6 +140,11 @@ export default function HistoryTab() {
 
           return null
         })}
+        {hasMore && (
+          <div ref={sentinelRef} className="text-[10px] text-gray-400 text-center py-2">
+            加载中…
+          </div>
+        )}
       </div>
     </div>
   )
