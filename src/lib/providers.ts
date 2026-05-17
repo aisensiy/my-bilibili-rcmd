@@ -66,7 +66,7 @@ export async function callProvider(opts: CallProviderOptions): Promise<CallProvi
   // HTTP-Referer / X-Title 是 OpenRouter 的可选 attribution header，
   // 其他 provider 用不到，按 active provider 条件附加。
   if (opts.provider === 'openrouter') {
-    headers['HTTP-Referer'] = 'https://github.com/xushanchuan/my-bilibili-rcmd'
+    headers['HTTP-Referer'] = 'https://github.com/aisensiy/my-bilibili-rcmd'
     headers['X-Title'] = 'My Bilibili Rcmd'
   }
 

@@ -27,7 +27,7 @@
 ### 从源码安装（暂未上架商店）
 
 ```bash
-git clone https://github.com/<你的用户名>/my-bilibili-rcmd.git
+git clone https://github.com/aisensiy/my-bilibili-rcmd.git
 cd my-bilibili-rcmd
 npm install
 npm run build
