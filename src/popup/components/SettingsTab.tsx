@@ -47,7 +47,9 @@ export default function SettingsTab() {
       apiKey: key,
       model: cfg.model.trim(),
       messages: [{ role: 'user', content: '用一句话说你好，不超过10个字。' }],
-      maxTokens: 30,
+      // 思考模型（kimi、glm 等）会先消耗一大段 token 做推理才输出 content，
+      // 给足 1024 的预算，避免 finish_reason=length 导致 content 为空。
+      maxTokens: 1024,
     })
 
     if (!result.ok) {

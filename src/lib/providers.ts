@@ -89,11 +89,26 @@ export async function callProvider(opts: CallProviderOptions): Promise<CallProvi
       return { ok: false, errorStatus: response.status, errorMessage: errText }
     }
     const data = await response.json()
-    const content = data?.choices?.[0]?.message?.content
-    if (typeof content !== 'string') {
-      return { ok: false, errorMessage: '响应缺少 content 字段' }
+    const choice = data?.choices?.[0]
+    const message = choice?.message
+    const content = message?.content
+    if (typeof content === 'string' && content.length > 0) {
+      return { ok: true, content }
     }
-    return { ok: true, content }
+    // Thinking 模型（kimi、glm 在 OpenRouter 上默认开启思考）会把 max_tokens 用在
+    // 推理上，content 返回 null，文本落在 reasoning 字段。把 reasoning 当作回退，
+    // 否则用户看到的就是"响应缺少 content"这种无效错误信息。
+    const reasoning = typeof message?.reasoning === 'string' ? message.reasoning : ''
+    if (reasoning.length > 0) {
+      return { ok: true, content: reasoning }
+    }
+    const finishReason = choice?.finish_reason
+    const hint = finishReason === 'length'
+      ? '（finish_reason=length，max_tokens 可能被思考预算吃光了，试着调大）'
+      : finishReason
+        ? `（finish_reason=${finishReason}）`
+        : ''
+    return { ok: false, errorMessage: `响应缺少 content 字段${hint}` }
   } catch (e) {
     return { ok: false, errorMessage: e instanceof Error ? e.message : String(e) }
   }
