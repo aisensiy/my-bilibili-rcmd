@@ -1,6 +1,19 @@
 import { useEffect, useState } from 'react'
 import { storage, type UserProfile } from '../lib/storage'
 
+// 跟 service-worker.ts 的 AnalysisState 保持一致；service worker 不应被 popup 引用，
+// 所以类型在这里复制一份。
+type AnalysisPhase = 'idle' | 'requesting' | 'reasoning' | 'streaming' | 'done' | 'error'
+interface AnalysisState {
+  running: boolean
+  startedAt: number
+  phase: AnalysisPhase
+  reasoningChars: number
+  contentChars: number
+  previewTail: string
+  errorMessage?: string
+}
+
 function TagList({
   label,
   hint,
@@ -66,16 +79,30 @@ function TagList({
 
 export default function ProfileTab() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
-  const [analyzing, setAnalyzing] = useState(false)
   const [msg, setMsg] = useState('')
-  const [progress, setProgress] = useState<{ since: number; threshold: number }>({ since: 0, threshold: 5 })
+  const [counter, setCounter] = useState({ since: 0, threshold: 5 })
+  const [analysis, setAnalysis] = useState<AnalysisState | null>(null)
+  // 仅用于驱动每秒重渲染显示 elapsed 秒数。
+  const [, tick] = useState(0)
+
+  const analyzing = analysis?.running ?? false
 
   useEffect(() => {
     storage.getProfile().then(setProfile)
 
-    // Listen for profile updates from background
+    // 打开弹窗时拉一次后台的进度状态，恢复"分析中"UI。
+    chrome.runtime.sendMessage({ type: 'query_analysis_state' })
+      .then(res => { if (res?.state) setAnalysis(res.state) })
+      .catch(() => {})
+
     const handler = (message: any) => {
-      if (message.type === 'profile_updated') setProfile(message.profile)
+      if (message.type === 'profile_progress') {
+        setAnalysis(message.state)
+      }
+      if (message.type === 'profile_updated') {
+        setProfile(message.profile)
+        setMsg('分析完成！')
+      }
     }
     chrome.runtime.onMessage.addListener(handler)
     return () => chrome.runtime.onMessage.removeListener(handler)
@@ -87,10 +114,17 @@ export default function ProfileTab() {
         storage.getActionsSinceLastAnalysis(),
         storage.getSettings(),
       ])
-      setProgress({ since, threshold: settings.triggerThreshold })
+      setCounter({ since, threshold: settings.triggerThreshold })
     }
     load()
   }, [profile])
+
+  // 分析中每秒触发一次重渲染来更新已用秒数显示。
+  useEffect(() => {
+    if (!analyzing) return
+    const id = setInterval(() => tick(t => t + 1), 1000)
+    return () => clearInterval(id)
+  }, [analyzing])
 
   const save = async (updated: UserProfile) => {
     setProfile(updated)
@@ -98,23 +132,16 @@ export default function ProfileTab() {
   }
 
   const handleAnalyze = async () => {
-    setAnalyzing(true)
     setMsg('')
-    try {
-      const res = await chrome.runtime.sendMessage({ type: 'analyze_profile' })
-      if (res?.ok) {
-        const p = await storage.getProfile()
-        setProfile(p)
-        setMsg('分析完成！')
-      } else {
-        setMsg('分析失败，请检查 API Key 和网络')
-      }
-    } catch {
-      setMsg('分析失败，请检查设置')
-    } finally {
-      setAnalyzing(false)
-    }
+    // 触发即返回——进度通过 profile_progress 广播驱动 UI。
+    await chrome.runtime.sendMessage({ type: 'analyze_profile' }).catch(() => {
+      setMsg('启动分析失败')
+    })
   }
+
+  const elapsedSec = analyzing && analysis?.startedAt
+    ? Math.max(0, Math.floor((Date.now() - analysis.startedAt) / 1000))
+    : 0
 
   if (!profile) return <div className="p-4 text-xs text-gray-400">加载中...</div>
 
@@ -127,7 +154,7 @@ export default function ProfileTab() {
           <>
             <div className="font-medium text-gray-700 mb-1">AI 还不认识你</div>
             <div>
-              已记录 {progress.since} 条行为，再看 {Math.max(progress.threshold - progress.since, 0)} 个视频就会自动生成你的画像。
+              已记录 {counter.since} 条行为，再看 {Math.max(counter.threshold - counter.since, 0)} 个视频就会自动生成你的画像。
             </div>
           </>
         ) : (
@@ -172,6 +199,31 @@ export default function ProfileTab() {
       {/* 固定底部操作栏，跟 SettingsTab 保持一致——常驻可见，
           画像页内容较长时无需滚动找按钮。 */}
       <div className="px-4 py-3 border-t border-gray-100 bg-white">
+        {analyzing && analysis && (
+          <div className="mb-2 text-[11px] text-gray-600 leading-relaxed">
+            <div className="flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full bg-[#fb7299] animate-pulse shrink-0" />
+              {analysis.phase === 'requesting' && <span>正在连接模型... · {elapsedSec}s</span>}
+              {analysis.phase === 'reasoning' && (
+                <span>模型思考中 · {analysis.reasoningChars} 字 · {elapsedSec}s</span>
+              )}
+              {analysis.phase === 'streaming' && (
+                <span>正在生成画像 · {analysis.contentChars} 字 · {elapsedSec}s</span>
+              )}
+            </div>
+            {analysis.previewTail && (
+              <div className="mt-1 px-1 font-mono text-[10px] text-gray-400 truncate" title={analysis.previewTail}>
+                … {analysis.previewTail}
+              </div>
+            )}
+            <div className="mt-1 text-[10px] text-gray-400">关闭弹窗也不会中断，分析在后台继续。</div>
+          </div>
+        )}
+        {!analyzing && analysis?.phase === 'error' && analysis.errorMessage && (
+          <div className="mb-2 text-[11px] text-red-600 bg-red-50 border border-red-200 rounded px-2 py-1.5 leading-relaxed break-all">
+            分析失败：{analysis.errorMessage}
+          </div>
+        )}
         <button
           onClick={handleAnalyze}
           disabled={analyzing}
@@ -180,7 +232,9 @@ export default function ProfileTab() {
         >
           {analyzing ? '分析中...' : (profile.lastUpdated === 0 ? '立即分析' : '立即重新分析')}
         </button>
-        {msg && <div className="mt-1.5 text-xs text-center text-gray-500">{msg}</div>}
+        {!analyzing && analysis?.phase !== 'error' && msg && (
+          <div className="mt-1.5 text-xs text-center text-gray-500">{msg}</div>
+        )}
       </div>
     </div>
   )

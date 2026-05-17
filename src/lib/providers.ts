@@ -51,6 +51,15 @@ export interface CallProviderOptions {
   //   （旧模型 deepseek-chat/reasoner 在 2026-07 之前被替换；旧模型可能忽略此参数）
   // 不传则使用模型默认。
   reasoning?: 'off' | 'low' | 'medium' | 'high'
+  // 启用 SSE 流式响应。开启后会逐 chunk 调用 onChunk，最终 result.content
+  // 仍是完整文本。OpenAI 兼容协议下三家 provider 都支持。
+  stream?: boolean
+  onChunk?: (delta: {
+    contentDelta: string
+    reasoningDelta: string
+    contentSoFar: string
+    reasoningSoFar: string
+  }) => void
 }
 
 export type CallProviderResult =
@@ -84,6 +93,7 @@ export async function callProvider(opts: CallProviderOptions): Promise<CallProvi
   if (opts.responseFormat) body.response_format = { type: opts.responseFormat }
   if (typeof opts.maxTokens === 'number') body.max_tokens = opts.maxTokens
   if (typeof opts.temperature === 'number') body.temperature = opts.temperature
+  if (opts.stream) body.stream = true
   if (opts.reasoning) {
     // 各 provider 的思考控制参数：
     // - OpenRouter：标准 reasoning.enabled / reasoning.effort（支持三档）
@@ -110,6 +120,7 @@ export async function callProvider(opts: CallProviderOptions): Promise<CallProvi
       const errText = await response.text().catch(() => '')
       return { ok: false, errorStatus: response.status, errorMessage: errText }
     }
+    if (opts.stream) return readStream(response, opts.onChunk)
     const data = await response.json()
     const choice = data?.choices?.[0]
     const message = choice?.message
@@ -134,4 +145,54 @@ export async function callProvider(opts: CallProviderOptions): Promise<CallProvi
   } catch (e) {
     return { ok: false, errorMessage: e instanceof Error ? e.message : String(e) }
   }
+}
+
+async function readStream(
+  response: Response,
+  onChunk: CallProviderOptions['onChunk'],
+): Promise<CallProviderResult> {
+  if (!response.body) return { ok: false, errorMessage: '流式响应没有 body' }
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let contentSoFar = ''
+  let reasoningSoFar = ''
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      // SSE 按行分割，最后一段可能不完整，留在 buffer 等下次拼。
+      const lines = buffer.split('\n')
+      buffer = lines.pop() ?? ''
+      for (const rawLine of lines) {
+        const line = rawLine.trim()
+        if (!line.startsWith('data:')) continue
+        const data = line.slice(5).trim()
+        if (!data || data === '[DONE]') continue
+        let parsed: any
+        try { parsed = JSON.parse(data) } catch { continue }
+        const delta = parsed?.choices?.[0]?.delta
+        if (!delta) continue
+        const contentDelta = typeof delta.content === 'string' ? delta.content : ''
+        // OpenRouter 用 reasoning，DeepSeek/部分模型用 reasoning_content。
+        const reasoningDelta = typeof delta.reasoning === 'string'
+          ? delta.reasoning
+          : typeof delta.reasoning_content === 'string'
+            ? delta.reasoning_content
+            : ''
+        if (!contentDelta && !reasoningDelta) continue
+        contentSoFar += contentDelta
+        reasoningSoFar += reasoningDelta
+        onChunk?.({ contentDelta, reasoningDelta, contentSoFar, reasoningSoFar })
+      }
+    }
+  } catch (e) {
+    return { ok: false, errorMessage: e instanceof Error ? e.message : String(e) }
+  }
+
+  if (contentSoFar.length > 0) return { ok: true, content: contentSoFar }
+  if (reasoningSoFar.length > 0) return { ok: true, content: reasoningSoFar }
+  return { ok: false, errorMessage: '流式响应未返回任何文本' }
 }
