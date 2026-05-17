@@ -44,6 +44,13 @@ export interface CallProviderOptions {
   responseFormat?: 'json_object'
   maxTokens?: number
   temperature?: number
+  // 控制思考模型的推理强度。是否生效、能识别哪些值，取决于具体 provider/模型。
+  // - OpenRouter：'off' → reasoning.enabled=false；'low/medium/high' → reasoning.effort
+  // - GLM 原生 (智谱)：只有 thinking.disabled 开关，'off' 和 'low' 都映射成关闭
+  // - DeepSeek 原生：V4 系列同样用 thinking.disabled 开关，'off' 和 'low' 映射成关闭
+  //   （旧模型 deepseek-chat/reasoner 在 2026-07 之前被替换；旧模型可能忽略此参数）
+  // 不传则使用模型默认。
+  reasoning?: 'off' | 'low' | 'medium' | 'high'
 }
 
 export type CallProviderResult =
@@ -77,6 +84,21 @@ export async function callProvider(opts: CallProviderOptions): Promise<CallProvi
   if (opts.responseFormat) body.response_format = { type: opts.responseFormat }
   if (typeof opts.maxTokens === 'number') body.max_tokens = opts.maxTokens
   if (typeof opts.temperature === 'number') body.temperature = opts.temperature
+  if (opts.reasoning) {
+    // 各 provider 的思考控制参数：
+    // - OpenRouter：标准 reasoning.enabled / reasoning.effort（支持三档）
+    // - GLM 原生 / DeepSeek V4 原生：thinking.type 只有 enabled|disabled 二档
+    if (opts.provider === 'openrouter') {
+      body.reasoning = opts.reasoning === 'off'
+        ? { enabled: false }
+        : { effort: opts.reasoning }
+    } else if (opts.provider === 'glm' || opts.provider === 'deepseek') {
+      // 二档 provider 无 medium/high 概念；只在用户明确想"少思考"时关掉。
+      if (opts.reasoning === 'off' || opts.reasoning === 'low') {
+        body.thinking = { type: 'disabled' }
+      }
+    }
+  }
 
   try {
     const response = await fetch(url, {

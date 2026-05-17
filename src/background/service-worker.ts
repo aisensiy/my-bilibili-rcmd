@@ -71,6 +71,8 @@ ${JSON.stringify(userProfile, null, 2)}
     messages: [{ role: 'user', content: prompt }],
     responseFormat: 'json_object',
     temperature: 0.3,
+    // 画像抽取任务不复杂，全推理太慢且耗 token；用 low 在速度和质量间取平衡。
+    reasoning: 'low',
   })
 
   if (!result.ok) {
