@@ -119,7 +119,8 @@ export default function ProfileTab() {
   if (!profile) return <div className="p-4 text-xs text-gray-400">加载中...</div>
 
   return (
-    <div className="p-4 overflow-y-auto h-full">
+    <div className="h-full flex flex-col">
+      <div className="flex-1 overflow-y-auto p-4 pb-2">
       {/* Analysis summary */}
       <div className="bg-gray-50 rounded-lg p-3 mb-4 text-xs text-gray-600 leading-relaxed">
         {profile.lastUpdated === 0 ? (
@@ -166,15 +167,21 @@ export default function ProfileTab() {
         onRemove={tag => save({ ...profile, blockedUps: profile.blockedUps.filter(t => t !== tag) })}
       />
 
-      <button
-        onClick={handleAnalyze}
-        disabled={analyzing}
-        className="w-full py-2 rounded-lg text-sm font-medium text-white transition-opacity disabled:opacity-60"
-        style={{ background: '#fb7299' }}
-      >
-        {analyzing ? '分析中...' : (profile.lastUpdated === 0 ? '立即分析' : '立即重新分析')}
-      </button>
-      {msg && <div className="mt-2 text-xs text-center text-gray-500">{msg}</div>}
+      </div>
+
+      {/* 固定底部操作栏，跟 SettingsTab 保持一致——常驻可见，
+          画像页内容较长时无需滚动找按钮。 */}
+      <div className="px-4 py-3 border-t border-gray-100 bg-white">
+        <button
+          onClick={handleAnalyze}
+          disabled={analyzing}
+          className="w-full py-2.5 rounded-lg text-sm font-medium text-white transition-opacity disabled:opacity-60"
+          style={{ background: '#fb7299' }}
+        >
+          {analyzing ? '分析中...' : (profile.lastUpdated === 0 ? '立即分析' : '立即重新分析')}
+        </button>
+        {msg && <div className="mt-1.5 text-xs text-center text-gray-500">{msg}</div>}
+      </div>
     </div>
   )
 }
