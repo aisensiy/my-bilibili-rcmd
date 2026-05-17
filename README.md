@@ -56,8 +56,8 @@ B 站推荐流刷久了越来越糟，原生「不感兴趣」感觉点了也没
 ```bash
 git clone https://github.com/aisensiy/my-bilibili-rcmd.git
 cd my-bilibili-rcmd
-npm install
-npm run build
+pnpm install
+pnpm build
 ```
 
 然后 chrome://extensions → 开开发者模式 → 加载已解压的扩展 → 选 `dist/`。
@@ -87,9 +87,9 @@ npm run build
 ## 开发
 
 ```bash
-npm install
-npm run dev   # Vite dev mode
-npm run build # 一次构建
+pnpm install
+pnpm dev    # Vite dev mode
+pnpm build  # 一次构建
 ```
 
 技术栈：Vite + CRXJS + React 18 + Tailwind v3 + TypeScript。
