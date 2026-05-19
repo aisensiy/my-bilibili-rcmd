@@ -23,7 +23,7 @@ export const PROVIDERS: Record<ProviderId, ProviderSpec> = {
   glm: {
     label: '智谱 GLM',
     baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
-    keyUrl: 'https://open.bigmodel.cn/usercenter/apikeys',
+    keyUrl: 'https://open.bigmodel.cn/apikey/platform',
     blurb: '国内服务，低延迟',
     modelPlaceholder: '例：glm-4-flash',
   },
