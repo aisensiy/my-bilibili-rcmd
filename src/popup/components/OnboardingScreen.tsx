@@ -37,7 +37,8 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <div className="p-4 overflow-y-auto h-full text-gray-700">
+    <div className="h-full flex flex-col text-gray-700">
+      <div className="flex-1 overflow-y-auto p-4 pb-2">
       {/* Hero */}
       <div className="mb-5">
         <div className="text-lg font-bold mb-1">欢迎用「我的 Bilibili 推荐」</div>
@@ -121,19 +122,24 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
         </p>
       </div>
 
-      {/* 按钮 */}
-      <button
-        onClick={() => finish(canFinishConfigured)}
-        className="w-full py-2.5 rounded-lg text-sm font-medium text-white transition-all"
-        style={{ background: '#fb7299' }}
-      >
-        {canFinishConfigured ? '开始使用' : '跳过，稍后在设置里填'}
-      </button>
-      {!canFinishConfigured && (
-        <p className="text-[10px] text-gray-400 mt-2 text-center">
-          需要填 Key 和模型，AI 才会工作
-        </p>
-      )}
+      </div>
+
+      {/* 固定底部操作栏，跟 SettingsTab / ProfileTab 一致——常驻可见，
+          内容长时不必滚到底也能开始使用。 */}
+      <div className="px-4 py-3 border-t border-gray-100 bg-white">
+        <button
+          onClick={() => finish(canFinishConfigured)}
+          className="w-full py-2.5 rounded-lg text-sm font-medium text-white transition-all"
+          style={{ background: '#fb7299' }}
+        >
+          {canFinishConfigured ? '开始使用' : '跳过，稍后在设置里填'}
+        </button>
+        {!canFinishConfigured && (
+          <p className="text-[10px] text-gray-400 mt-1.5 text-center">
+            需要填 Key 和模型，AI 才会工作
+          </p>
+        )}
+      </div>
     </div>
   )
 }
