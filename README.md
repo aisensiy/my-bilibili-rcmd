@@ -53,6 +53,20 @@ B 站推荐流刷久了越来越糟，原生「不感兴趣」感觉点了也没
 
 ## 安装
 
+三种方式，按你方便挑一个：
+
+**1. Chrome 应用商店（最省事）**
+
+直接装：[我的 Bilibili 推荐 · Chrome 应用商店](https://chromewebstore.google.com/detail/%E6%88%91%E7%9A%84-bilibili-%E6%8E%A8%E8%8D%90/fbjfocpchadnanfkiecekebmopfjlpee?utm_source=item-share-cb)
+
+**2. 从 Release 下载 zip**
+
+去 [Releases](https://github.com/aisensiy/my-bilibili-rcmd/releases) 下最新的 zip 解压，然后 chrome://extensions → 开开发者模式 → 加载已解压的扩展 → 选解压出来的文件夹。
+
+**3. 自己构建**
+
+需要 Node.js 和 pnpm（没装 pnpm 的话 `npm i -g pnpm`）。
+
 ```bash
 git clone https://github.com/aisensiy/my-bilibili-rcmd.git
 cd my-bilibili-rcmd
@@ -62,7 +76,9 @@ pnpm build
 
 然后 chrome://extensions → 开开发者模式 → 加载已解压的扩展 → 选 `dist/`。
 
-打开扩展会有个引导页让你填 Key 和模型。填完去 B 站正常用，看够 5 个视频 AI 就会自动分析一次。也可以在画像 tab 手动点"立即分析"。
+---
+
+装完打开扩展会有个引导页让你填 Key 和模型。填完去 B 站正常用，看够 5 个视频 AI 就会自动分析一次。也可以在画像 tab 手动点"立即分析"。
 
 ## 想试的下一步
 
