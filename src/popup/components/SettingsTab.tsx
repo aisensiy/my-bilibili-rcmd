@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { storage, type Settings, DEFAULT_SETTINGS } from '../lib/storage'
 import { PROVIDERS, type ProviderId, callProvider } from '../../lib/providers'
+import AboutSection from './AboutSection'
 
 type TestStatus = 'idle' | 'testing' | 'ok' | 'fail'
 
@@ -228,6 +229,8 @@ export default function SettingsTab() {
           重新查看引导
         </button>
       </div>
+
+      <AboutSection />
 
       {/* 危险操作 */}
       <div className="mt-4 pt-4 border-t border-gray-100">
