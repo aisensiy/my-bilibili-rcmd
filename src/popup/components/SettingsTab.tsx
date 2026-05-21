@@ -52,16 +52,22 @@ export default function SettingsTab() {
     setTestStatus('testing')
     setTestMsg('')
 
-    const result = await callProvider({
+    const baseOpts = {
       provider: active,
       apiKey: key,
       model: cfg.model.trim(),
-      messages: [{ role: 'user', content: '用一句话说你好，不超过10个字。' }],
-      // 测试只验证连通，关闭思考让响应又快又省 token。
-      // *-thinking 变体可能拒绝；providers.ts 有 reasoning 回退 + 1024 预算兜底。
-      reasoning: 'off',
-      maxTokens: 1024,
-    })
+      messages: [{ role: 'user' as const, content: '用一句话说你好，不超过10个字。' }],
+    }
+
+    // 先走"快路径"：关闭思考 + 1024 token 预算，连通验证又快又省。
+    let result = await callProvider({ ...baseOpts, reasoning: 'off', maxTokens: 1024 })
+
+    // 部分思考型模型不接受 thinking/reasoning 关闭参数（返回 4xx），
+    // 或忽略后仍然思考把 1024 吃光（finish_reason=length，无 content）。
+    // 退到"慢路径"：不传 reasoning，预算抬到 4096 给思考留空间。
+    if (!result.ok) {
+      result = await callProvider({ ...baseOpts, maxTokens: 4096 })
+    }
 
     if (!result.ok) {
       setTestStatus('fail')
