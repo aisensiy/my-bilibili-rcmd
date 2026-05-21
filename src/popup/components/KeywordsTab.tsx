@@ -37,7 +37,7 @@ export default function KeywordsTab() {
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && add()}
           placeholder="输入关键词，回车添加"
-          className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#fb7299] transition-colors"
+          className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 outline-hidden focus:border-bili-pink transition-colors"
         />
         <button
           onClick={add}

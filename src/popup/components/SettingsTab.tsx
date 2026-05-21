@@ -98,7 +98,7 @@ export default function SettingsTab() {
               onClick={() => switchProvider(pid)}
               className={`flex-1 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
                 active === pid
-                  ? 'border-[#fb7299] text-[#fb7299] bg-[#fff5f8]'
+                  ? 'border-bili-pink text-bili-pink bg-[#fff5f8]'
                   : 'border-gray-200 text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -120,7 +120,7 @@ export default function SettingsTab() {
             value={cfg.apiKey}
             onChange={e => updateProviderCfg({ apiKey: e.target.value })}
             placeholder="填入你的 API Key"
-            className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#fb7299] font-mono"
+            className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 outline-hidden focus:border-bili-pink font-mono"
           />
           <button
             onClick={() => setShowKey(v => !v)}
@@ -132,7 +132,7 @@ export default function SettingsTab() {
         <p className="text-[10px] text-gray-400 mt-1">
           Key 仅存储在本地，不会上传任何服务器。
           <a href={spec.keyUrl} target="_blank" rel="noreferrer"
-            className="text-[#00a1d6] ml-1">去 {spec.label} 拿 Key →</a>
+            className="text-bili-blue ml-1">去 {spec.label} 拿 Key →</a>
         </p>
       </div>
 
@@ -146,7 +146,7 @@ export default function SettingsTab() {
           value={cfg.model}
           onChange={e => updateProviderCfg({ model: e.target.value })}
           placeholder={spec.modelPlaceholder}
-          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#fb7299] font-mono"
+          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-hidden focus:border-bili-pink font-mono"
         />
         <p className="text-[10px] text-gray-400 mt-1">
           手输 model id。可用清单见 {spec.label} 官方文档；下方"测试 API 连接"可验证。
@@ -177,7 +177,7 @@ export default function SettingsTab() {
       {/* 阈值 */}
       <div className="mb-6">
         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-          自动触发阈值：每 <span className="text-[#fb7299]">{settings.triggerThreshold}</span> 条新行为
+          自动触发阈值：每 <span className="text-bili-pink">{settings.triggerThreshold}</span> 条新行为
         </label>
         <input
           type="range"
@@ -186,7 +186,7 @@ export default function SettingsTab() {
           step={1}
           value={settings.triggerThreshold}
           onChange={e => setSettings(s => ({ ...s, triggerThreshold: Number(e.target.value) }))}
-          className="w-full accent-[#fb7299]"
+          className="w-full accent-bili-pink"
         />
         <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
           <span>3（更频繁）</span>
@@ -208,7 +208,7 @@ export default function SettingsTab() {
             setSavedSnapshot(next)
           }}
           className={`relative w-10 h-5 rounded-full transition-colors ${
-            settings.debugMode ? 'bg-[#fb7299]' : 'bg-gray-300'
+            settings.debugMode ? 'bg-bili-pink' : 'bg-gray-300'
           }`}
         >
           <span

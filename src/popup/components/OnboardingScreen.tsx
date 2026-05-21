@@ -69,7 +69,7 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
               onClick={() => switchProvider(pid)}
               className={`flex-1 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
                 provider === pid
-                  ? 'border-[#fb7299] text-[#fb7299] bg-[#fff5f8]'
+                  ? 'border-bili-pink text-bili-pink bg-[#fff5f8]'
                   : 'border-gray-200 text-gray-500'
               }`}
             >
@@ -90,10 +90,10 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
           value={apiKey}
           onChange={e => setApiKey(e.target.value)}
           placeholder="填入你的 API Key"
-          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#fb7299] font-mono"
+          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-hidden focus:border-bili-pink font-mono"
         />
         <a href={spec.keyUrl} target="_blank" rel="noreferrer"
-          className="text-[10px] text-[#00a1d6] mt-1 inline-block">去 {spec.label} 拿 Key →</a>
+          className="text-[10px] text-bili-blue mt-1 inline-block">去 {spec.label} 拿 Key →</a>
       </div>
 
       {/* 模型 */}
@@ -106,7 +106,7 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
           value={model}
           onChange={e => setModel(e.target.value)}
           placeholder={spec.modelPlaceholder}
-          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#fb7299] font-mono"
+          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-hidden focus:border-bili-pink font-mono"
         />
         <p className="text-[10px] text-gray-400 mt-1">
           手输 model id。可用清单见 {spec.label} 官方文档；填完后到设置 tab 可"测试 API 连接"验证。

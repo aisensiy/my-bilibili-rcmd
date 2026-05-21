@@ -57,7 +57,7 @@ export default function App() {
             onClick={() => setActive(tab.id)}
             className={`flex-1 py-2.5 text-xs font-medium transition-colors ${
               active === tab.id
-                ? 'text-[#fb7299] border-b-2 border-[#fb7299]'
+                ? 'text-bili-pink border-b-2 border-bili-pink'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >

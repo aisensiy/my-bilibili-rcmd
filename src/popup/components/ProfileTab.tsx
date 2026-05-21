@@ -65,11 +65,11 @@ function TagList({
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleAdd()}
           placeholder="输入标签回车添加"
-          className="flex-1 text-xs border border-gray-200 rounded px-2 py-1 outline-none focus:border-gray-400"
+          className="flex-1 text-xs border border-gray-200 rounded-sm px-2 py-1 outline-hidden focus:border-gray-400"
         />
         <button
           onClick={handleAdd}
-          className="text-xs px-2 py-1 rounded text-white"
+          className="text-xs px-2 py-1 rounded-sm text-white"
           style={{ background: color }}
         >+</button>
       </div>
@@ -202,7 +202,7 @@ export default function ProfileTab() {
         {analyzing && analysis && (
           <div className="mb-2 text-[11px] text-gray-600 leading-relaxed">
             <div className="flex items-center gap-1.5">
-              <span className="inline-block w-2 h-2 rounded-full bg-[#fb7299] animate-pulse shrink-0" />
+              <span className="inline-block w-2 h-2 rounded-full bg-bili-pink animate-pulse shrink-0" />
               {analysis.phase === 'requesting' && <span>正在连接模型... · {elapsedSec}s</span>}
               {analysis.phase === 'reasoning' && (
                 <span>模型思考中 · {analysis.reasoningChars} 字 · {elapsedSec}s</span>
@@ -220,7 +220,7 @@ export default function ProfileTab() {
           </div>
         )}
         {!analyzing && analysis?.phase === 'error' && analysis.errorMessage && (
-          <div className="mb-2 text-[11px] text-red-600 bg-red-50 border border-red-200 rounded px-2 py-1.5 leading-relaxed break-all">
+          <div className="mb-2 text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-sm px-2 py-1.5 leading-relaxed break-all">
             分析失败：{analysis.errorMessage}
           </div>
         )}
