@@ -1,9 +1,11 @@
 {
   "manifest_version": 3,
   "name": "我的 Bilibili 推荐",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "用 LLM 看你的 B 站行为生成兴趣画像，自动过滤推荐流",
-  "permissions": ["storage"],
+  "permissions": [
+    "storage"
+  ],
   "host_permissions": [
     "https://*.bilibili.com/*",
     "https://openrouter.ai/*",
@@ -16,14 +18,22 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://www.bilibili.com/*"],
-      "js": ["src/content/main-world-helper.ts"],
+      "matches": [
+        "https://www.bilibili.com/*"
+      ],
+      "js": [
+        "src/content/main-world-helper.ts"
+      ],
       "run_at": "document_start",
       "world": "MAIN"
     },
     {
-      "matches": ["https://www.bilibili.com/*"],
-      "js": ["src/content/index.ts"],
+      "matches": [
+        "https://www.bilibili.com/*"
+      ],
+      "js": [
+        "src/content/index.ts"
+      ],
       "run_at": "document_idle"
     }
   ],
