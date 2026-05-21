@@ -1,6 +1,6 @@
 {
   "name": "my-bilibili-rcmd",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "用 LLM 看你的 B 站行为生成兴趣画像，自动过滤推荐流",
   "type": "module",
   "scripts": {
