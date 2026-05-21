@@ -114,7 +114,18 @@ pnpm dev    # Vite dev mode
 pnpm build  # 一次构建
 ```
 
-技术栈：Vite + CRXJS + React 18 + Tailwind v3 + TypeScript。
+技术栈：Vite + CRXJS + React 18 + Tailwind v4 + TypeScript。
+
+## 发版流程
+
+版本号是 `manifest.json` 和 `package.json` 两处。发版前先 bump 写进 git，再打 tag 触发 CI 构建。
+
+```bash
+./scripts/bump.sh 0.1.2     # 改两个文件，commit，打 v0.1.2 tag
+git push --follow-tags      # 推到远端，CI 自动构建并发到 Chrome Web Store
+```
+
+CI（`.github/workflows/release.yml`）里也有从 tag 同步版本的兜底步骤，但流程上 source 是源码，CI 只是建产物。别让两边脱钩。
 
 ## License
 
