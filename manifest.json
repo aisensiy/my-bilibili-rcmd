@@ -41,7 +41,7 @@
     }
   ],
   "action": {
-    "default_popup": "src/popup/index.html",
+    "default_popup": "src/extension/index.html",
     "default_title": "我的 Bilibili 推荐",
     "default_icon": {
       "16": "icons/icon16.png",
@@ -50,7 +50,7 @@
     }
   },
   "options_ui": {
-    "page": "src/popup/index.html",
+    "page": "src/extension/index.html",
     "open_in_tab": true
   },
   "icons": {
