@@ -7,7 +7,6 @@ import VideoCard, { type VideoCardData } from './VideoCard'
 export default function BiliPage({ cards }: { cards: VideoCardData[] }) {
   return (
     <div style={{
-      height: 283,
       padding: '20px 18px 18px',
       background: '#ffffff',
     }}>
