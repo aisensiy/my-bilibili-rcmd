@@ -1,5 +1,17 @@
 @import 'tailwindcss';
 
+/*
+  Explicit @source declarations so promo (root=src/promo) still sees Tailwind
+  classes used in ui/ and extension/. Without these, Tailwind v4's auto source
+  detection — which walks files relative to vite's `root` — only finds
+  src/promo/* and skips every Tailwind class on PopupShell, HistoryView,
+  ProfileView, KeywordsView, OnboardingView. Extension build also imports this
+  CSS but already finds those files via project-root auto-detection, so these
+  lines are no-ops there.
+*/
+@source "../ui/**/*.{ts,tsx}";
+@source "../extension/**/*.{ts,tsx}";
+
 @theme {
   --color-bili-pink: #fb7299;
   --color-bili-blue: #00a1d6;
