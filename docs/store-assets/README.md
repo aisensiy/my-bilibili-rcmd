@@ -31,6 +31,13 @@ Chrome Web Store 用的截图（1280×800）。
 3. 跑 `pnpm dev:promo?scene=<name>` 视觉调
 4. 出图同上
 
+### 现有 scene 列表
+
+| scene id | 源文件 | 截图 | 主题 |
+|---|---|---|---|
+| `history-insights` | `scenes/history-insights.tsx` | `screenshot-history-insights.png` | 观看历史留痕与完播统计 |
+| `filter-recommendations` | `scenes/filter-recommendations.tsx` | `screenshot-filter-recommendations.png` | 屏蔽不想看的推荐内容（兴趣画像驱动） |
+
 ## 规则
 
 - 中文文案使用**全角标点**（`，。？；（）「」`）

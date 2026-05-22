@@ -1,28 +1,49 @@
-// src/promo/scenes/history-insights.tsx
-// First promo: history + completion ratio.
-// Narrative: left = user browsing bilibili recommend stream;
-//            right = extension silently records (with completion ratio)
-// What this scene explicitly does NOT show (saved for filter-recommendations):
-//   keyword-hit fading, blocked-UP empty slots, hover 不感兴趣/不看TA callouts.
+// src/promo/scenes/filter-recommendations.tsx
+// Second promo: filter + block unwanted recommendations.
+// Narrative: left = bilibili feed with 3 card states (normal / filtered / hover-to-act);
+//            right = 兴趣画像 popup showing the profile that drives filtering.
 import Stage from '../components/layout/Stage'
 import BrowserChrome from '../components/layout/BrowserChrome'
 import BiliPage from '../components/bilibili/BiliPage'
 import VideoCard, { type VideoCardData } from '../components/bilibili/VideoCard'
+import FilteredCard from '../components/bilibili/FilteredCard'
+import HoverActions from '../components/bilibili/HoverActions'
 
 import PopupShell from '@/ui/PopupShell'
-import HistoryView from '@/ui/HistoryView'
-import { recentActions } from '@/ui/fixtures/actions'
-import { demoStats } from '@/ui/fixtures/stats'
+import ProfileView from '@/ui/ProfileView'
+import { demoProfile } from '@/ui/fixtures/profile'
 
-// 3 recommend-stream cards matching recentActions[0..2] so the
-// reader can visually trace "saw this video → it's the top history row".
-const RECOMMEND_CARDS: VideoCardData[] = [
-  { title: 'Rust 异步原理，这一次彻底搞懂', upName: '编程胡说',  cover: 'blue-tech',   plays: '12.3万', duration: '26:02', timeAgo: '3 小时前' },
-  { title: '京都拍了三天 vlog · 一个人',     upName: '小南行旅',  cover: 'warm-sunset', plays: '8.6万',  duration: '13:28', timeAgo: '5 小时前' },
-  { title: '前端 2026 还能学点什么',         upName: '野生程序员', cover: 'gray-tech',   plays: '2.1万',  duration: '10:34', timeAgo: '6 小时前' },
-]
+// Card 1: Normal — a healthy positive recommendation
+const NORMAL_CARD: VideoCardData = {
+  title: '深度科普：量子计算的边界',
+  upName: '理论物理君',
+  cover: 'blue-tech',
+  plays: '23.7万',
+  duration: '24:55',
+  timeAgo: '4 天前',
+}
 
-export default function HistoryInsightsScene() {
+// Card 2: Filtered — marketing bait that hits the user's keyword rule
+const FILTERED_CARD: VideoCardData = {
+  title: '震惊！明星xxx的家庭真相曝光',
+  upName: '今日热搜君',
+  cover: 'gray-tech',
+  plays: '92.5万',
+  duration: '03:18',
+  timeAgo: '2 小时前',
+}
+
+// Card 3: Hover state — normal card with action callout visible
+const HOVER_CARD: VideoCardData = {
+  title: 'iPhone 18 上手体验 · 真实评测',
+  upName: '数码档案室',
+  cover: 'purple-tech',
+  plays: '15.2万',
+  duration: '12:44',
+  timeAgo: '1 天前',
+}
+
+export default function FilterRecommendationsScene() {
   return (
     <Stage>
       {/* 顶部品牌区 + 右上隐私徽章 */}
@@ -69,10 +90,10 @@ export default function HistoryInsightsScene() {
       {/* Hero 文案 */}
       <section style={{ position: 'absolute', left: 79, top: 155, zIndex: 3 }}>
         <h1 style={{ width: 690, fontSize: 56, lineHeight: 1.18, fontWeight: 900, color: '#171b26' }}>
-          留住你看过的<span style={{ color: '#ff4f86' }}>每一条</span>
+          屏蔽不想看的<span style={{ color: '#ff4f86' }}>推荐内容</span>
         </h1>
         <p style={{ marginTop: 16, fontSize: 20, lineHeight: 1.4, fontWeight: 600, color: '#5e6677' }}>
-          标题、UP、进度全部本地留痕，比原生历史更完整
+          按兴趣画像和关键词，自动过滤垃圾信息
         </p>
         <div style={{ marginTop: 22, display: 'flex', alignItems: 'center', gap: 18 }}>
           <div style={{
@@ -81,29 +102,33 @@ export default function HistoryInsightsScene() {
             color: 'white', fontSize: 22, fontWeight: 800, lineHeight: 1,
             background: '#1b1d24',
             boxShadow: '0 12px 22px rgba(23, 27, 38, 0.12)',
-          }}>逐条记录</div>
+          }}>不感兴趣</div>
           <div style={{
             height: 46, padding: '0 23px', borderRadius: 999,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             color: 'white', fontSize: 22, fontWeight: 800, lineHeight: 1,
             background: 'linear-gradient(135deg, #fb7299 0%, #ff4f86 100%)',
             boxShadow: '0 12px 22px rgba(23, 27, 38, 0.12)',
-          }}>本地统计</div>
+          }}>屏蔽TA</div>
         </div>
       </section>
 
-      {/* 左下：浏览器外框 + B 站推荐流 */}
+      {/* 左下：浏览器外框 + B 站推荐流（3 种卡片状态） */}
       <BrowserChrome
         url="bilibili.com"
         tabTitle="哔哩哔哩"
         style={{ left: 43, bottom: 56, width: 740, height: 380 }}
       >
         <BiliPage>
-          {RECOMMEND_CARDS.map((card, i) => <VideoCard key={i} data={card} />)}
+          <VideoCard data={NORMAL_CARD} />
+          <FilteredCard data={FILTERED_CARD} reason="营销号" />
+          <HoverActions>
+            <VideoCard data={HOVER_CARD} />
+          </HoverActions>
         </BiliPage>
       </BrowserChrome>
 
-      {/* 右浮：真实 popup（用 ui 组件渲染） */}
+      {/* 右浮：兴趣画像 popup */}
       <aside style={{
         position: 'absolute',
         right: 79, top: 130,
@@ -115,8 +140,8 @@ export default function HistoryInsightsScene() {
         boxShadow: '0 18px 30px rgba(24, 30, 42, 0.18)',
         zIndex: 5,
       }}>
-        <PopupShell active="history" variant="popup">
-          <HistoryView actions={recentActions.slice(0, 5)} stats={demoStats} />
+        <PopupShell active="profile" variant="popup">
+          <ProfileView profile={demoProfile} />
         </PopupShell>
       </aside>
     </Stage>

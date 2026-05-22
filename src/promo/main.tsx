@@ -4,10 +4,12 @@
 // so the popup the promo renders looks identical to the real extension.
 import { createRoot } from 'react-dom/client'
 import HistoryInsights from './scenes/history-insights'
+import FilterRecommendations from './scenes/filter-recommendations'
 import '../extension/index.css'
 
 const SCENES = {
   'history-insights': HistoryInsights,
+  'filter-recommendations': FilterRecommendations,
 } as const
 
 type SceneId = keyof typeof SCENES
