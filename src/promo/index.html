@@ -5,8 +5,12 @@
   <meta name="viewport" content="width=1280, initial-scale=1" />
   <title>Bilibili Recommend — Promo</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { width: 1280px; height: 800px; overflow: hidden; }
+    /* NOTE: do NOT put `* { padding: 0 }`-style reset here. Rules outside
+       @layer always win over Tailwind's utility classes (which live in
+       @layer utilities), so a universal reset would silently kill every
+       `py-*` / `px-*` on the popup. extension/index.css imports Tailwind's
+       preflight which handles the reset properly. */
+    html, body { width: 1280px; height: 800px; overflow: hidden; margin: 0; }
     body {
       color: #171b26;
       background: #ffffff;
