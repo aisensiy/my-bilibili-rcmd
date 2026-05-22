@@ -9,7 +9,8 @@
     "build": "vite build",
     "build:promo": "vite build -c vite.config.promo.ts",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:bundle": "bash scripts/check-bundle.sh"
   },
   "dependencies": {
     "react": "^18.3.1",
