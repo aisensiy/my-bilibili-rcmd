@@ -11,6 +11,8 @@ import HistoryInsights from './scenes/history-insights'
 import FilterRecommendations from './scenes/filter-recommendations'
 import KeywordsBlocking from './scenes/keywords-blocking'
 import MultiProvider from './scenes/multi-provider'
+import PromoTile from './scenes/promo-tile'
+import MarqueeBanner from './scenes/marquee-banner'
 import '../extension/index.css'
 
 interface SceneSpec {
@@ -39,6 +41,16 @@ const SCENES: Record<string, SceneSpec> = {
     component: MultiProvider,
     name: 'Multi-Provider',
     description: '多供应商 + 自定义：OpenRouter / 智谱 / DeepSeek / 任意 OpenAI 兼容服务',
+  },
+  'promo-tile': {
+    component: PromoTile,
+    name: 'Promo Tile (440×280)',
+    description: 'Chrome Web Store 小型宣传图块：极简品牌广告，小尺寸下能读清',
+  },
+  'marquee-banner': {
+    component: MarqueeBanner,
+    name: 'Marquee Banner (1400×560)',
+    description: 'Chrome Web Store 顶部宣传图块：hero + 3 pills + 兴趣画像 popup',
   },
 }
 
