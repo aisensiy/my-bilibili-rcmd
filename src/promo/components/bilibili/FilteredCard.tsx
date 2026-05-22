@@ -12,16 +12,19 @@ export default function FilteredCard({ data, reason }: FilteredCardProps) {
       <div style={{ opacity: 0.4, filter: 'grayscale(0.6)' }}>
         <VideoCard data={data} />
       </div>
-      {/* Top-left badge: "命中: <reason>" */}
+      {/* Center badge on the thumbnail (thumbnail height = 128 from VideoCard).
+          Positioned absolutely at the visual center of the thumbnail area. */}
       <div style={{
         position: 'absolute',
-        top: 8, left: 8,
-        padding: '4px 10px',
-        borderRadius: 4,
-        background: 'rgba(17, 24, 39, 0.78)',
+        top: 64, left: '50%',
+        transform: 'translate(-50%, -50%)',
+        padding: '6px 14px',
+        borderRadius: 6,
+        background: 'rgba(17, 24, 39, 0.85)',
         color: '#ffffff',
-        fontSize: 11,
-        fontWeight: 700,
+        fontSize: 12,
+        fontWeight: 800,
+        whiteSpace: 'nowrap',
         zIndex: 2,
       }}>
         命中：{reason}

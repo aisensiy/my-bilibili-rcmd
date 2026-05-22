@@ -109,7 +109,7 @@ export default function FilterRecommendationsScene() {
             color: 'white', fontSize: 22, fontWeight: 800, lineHeight: 1,
             background: 'linear-gradient(135deg, #fb7299 0%, #ff4f86 100%)',
             boxShadow: '0 12px 22px rgba(23, 27, 38, 0.12)',
-          }}>屏蔽TA</div>
+          }}>不看TA</div>
         </div>
       </section>
 
