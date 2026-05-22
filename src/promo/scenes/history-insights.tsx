@@ -14,15 +14,12 @@ import HistoryView from '@/ui/HistoryView'
 import { recentActions } from '@/ui/fixtures/actions'
 import { demoStats } from '@/ui/fixtures/stats'
 
-// 6 recommend-stream cards. The first 3 match recentActions[0..2] so the
+// 3 recommend-stream cards matching recentActions[0..2] so the
 // reader can visually trace "saw this video → it's the top history row".
 const RECOMMEND_CARDS: VideoCardData[] = [
   { title: 'Rust 异步原理，这一次彻底搞懂', upName: '编程胡说',  cover: 'blue-tech',   plays: '12.3万', duration: '26:02', timeAgo: '3 小时前' },
   { title: '京都拍了三天 vlog · 一个人',     upName: '小南行旅',  cover: 'warm-sunset', plays: '8.6万',  duration: '13:28', timeAgo: '5 小时前' },
   { title: '前端 2026 还能学点什么',         upName: '野生程序员', cover: 'gray-tech',   plays: '2.1万',  duration: '10:34', timeAgo: '6 小时前' },
-  { title: '从零写一个 Markdown 编辑器',     upName: '小白学前端', cover: 'purple-tech', plays: '4.5万',  duration: '16:18', timeAgo: '1 天前' },
-  { title: '深度科普：量子计算的边界',         upName: '理论物理君', cover: 'blue-tech',   plays: '23.7万', duration: '24:55', timeAgo: '4 天前' },
-  { title: '挪威自驾八日记 · 上集',          upName: '远行手记',   cover: 'orange-warm', plays: '6.1万',  duration: '18:42', timeAgo: '2 天前' },
 ]
 
 export default function HistoryInsightsScene() {
@@ -99,7 +96,7 @@ export default function HistoryInsightsScene() {
       <BrowserChrome
         url="bilibili.com"
         tabTitle="哔哩哔哩"
-        style={{ left: 43, bottom: 56, width: 740, height: 459 }}
+        style={{ left: 43, bottom: 56, width: 740, height: 310 }}
       >
         <BiliPage cards={RECOMMEND_CARDS} />
       </BrowserChrome>

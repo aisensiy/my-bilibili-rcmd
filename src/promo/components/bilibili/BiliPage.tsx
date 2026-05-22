@@ -39,13 +39,13 @@ export default function BiliPage({ cards }: { cards: VideoCardData[] }) {
         }}>搜索视频、UP主或番剧</div>
       </div>
 
-      {/* 卡片网格：3 列 × 2 行 */}
+      {/* 卡片网格：1 行 × 3 列 */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(3, 1fr)',
         gap: 14,
       }}>
-        {cards.slice(0, 6).map((card, i) => (
+        {cards.slice(0, 3).map((card, i) => (
           <VideoCard key={i} data={card} />
         ))}
       </div>
