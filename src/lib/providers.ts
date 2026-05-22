@@ -1,15 +1,20 @@
-// LLM 提供商抽象层。三家共用 OpenAI-compatible 的 chat completions 格式，
+// LLM 提供商抽象层。所有 provider 共用 OpenAI-compatible 的 chat completions 格式，
 // 只是 base URL 不同。模型 id 由用户在 UI 里手输（每家文档里查），
 // 代码不维护硬编码清单。
+//
+// 'custom' 是通用 OpenAI 兼容入口：base URL 由用户配置，可接任意自部署或第三方服务
+// （longcat、ollama、vLLM、One-API 等等）。custom 路径不发 reasoning/thinking 字段，
+// 因为目标服务的支持情况未知；思考模型靠 test 连接的 maxTokens 抬升 fallback 兜底。
 
-export type ProviderId = 'openrouter' | 'glm' | 'deepseek'
+export type ProviderId = 'openrouter' | 'glm' | 'deepseek' | 'custom'
 
 export interface ProviderSpec {
   label: string
-  baseUrl: string          // 不含尾部斜杠；callProvider 会拼 /chat/completions
+  baseUrl: string          // 不含尾部斜杠；callProvider 会拼 /chat/completions。custom 留空，由用户在设置里填
   keyUrl: string           // "去 XX 拿 key →" 链接
   blurb: string            // 一句话差异说明
   modelPlaceholder: string // 给模型输入框的 placeholder 示例（不是 default 值）
+  baseUrlPlaceholder?: string // 仅 custom 有：base URL 输入框的示例
 }
 
 export const PROVIDERS: Record<ProviderId, ProviderSpec> = {
@@ -34,6 +39,48 @@ export const PROVIDERS: Record<ProviderId, ProviderSpec> = {
     blurb: '国内服务，便宜',
     modelPlaceholder: '例：deepseek-chat',
   },
+  custom: {
+    label: '自定义',
+    baseUrl: '',
+    keyUrl: 'https://longcat.chat/platform/api_keys',
+    blurb: '任意 OpenAI 兼容服务（longcat / ollama / 自部署都行）',
+    modelPlaceholder: '例：LongCat-Flash-Chat',
+    baseUrlPlaceholder: '例：https://api.longcat.chat/openai/v1',
+  },
+}
+
+/**
+ * 把 custom provider 的 baseUrl 转换成 Chrome match pattern。
+ * 例：'https://api.longcat.chat/openai/v1' → 'https://api.longcat.chat/*'
+ * 用于 chrome.permissions.contains / request 的 origins 字段。
+ * 返回 null 表示 URL 无法解析。
+ */
+export function customOriginPattern(baseUrl: string | undefined): string | null {
+  if (!baseUrl) return null
+  try {
+    const u = new URL(baseUrl.trim())
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return null
+    return `${u.protocol}//${u.host}/*`
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 确保 custom provider baseUrl 所在域的 host_permission 已授予。未授予时弹
+ * Chrome 原生授权框（必须在用户手势上下文调用——onClick 第一个 await 之前最稳）。
+ * MV3 下扩展页 fetch 一个不在 host_permissions 里的 URL 会被 CORS / 安全检查拦截，
+ * 即便目标 ACAO 头是开放的；走 optional_host_permissions 一次性授权后即放行。
+ */
+export async function ensureCustomHostPermission(
+  baseUrl: string | undefined,
+): Promise<{ ok: true } | { ok: false; reason: 'bad-url' | 'denied' }> {
+  const pattern = customOriginPattern(baseUrl)
+  if (!pattern) return { ok: false, reason: 'bad-url' }
+  const has = await chrome.permissions.contains({ origins: [pattern] })
+  if (has) return { ok: true }
+  const granted = await chrome.permissions.request({ origins: [pattern] })
+  return granted ? { ok: true } : { ok: false, reason: 'denied' }
 }
 
 export interface CallProviderOptions {
@@ -41,6 +88,8 @@ export interface CallProviderOptions {
   apiKey: string
   model: string
   messages: { role: 'user' | 'system' | 'assistant'; content: string }[]
+  // 仅 provider==='custom' 时使用，覆盖 spec.baseUrl。其他 provider 忽略此字段。
+  baseUrl?: string
   responseFormat?: 'json_object'
   maxTokens?: number
   temperature?: number
@@ -49,6 +98,7 @@ export interface CallProviderOptions {
   // - GLM 原生 (智谱)：只有 thinking.disabled 开关，'off' 和 'low' 都映射成关闭
   // - DeepSeek 原生：V4 系列同样用 thinking.disabled 开关，'off' 和 'low' 映射成关闭
   //   （旧模型 deepseek-chat/reasoner 在 2026-07 之前被替换；旧模型可能忽略此参数）
+  // - custom：始终忽略——目标服务的参数支持情况未知，发了反而可能被 4xx 拒绝
   // 不传则使用模型默认。
   reasoning?: 'off' | 'low' | 'medium' | 'high'
   // 启用 SSE 流式响应。开启后会逐 chunk 调用 onChunk，最终 result.content
@@ -74,7 +124,12 @@ export async function callProvider(opts: CallProviderOptions): Promise<CallProvi
   if (!opts.model.trim()) {
     return { ok: false, errorMessage: '模型 id 不能为空' }
   }
-  const url = `${spec.baseUrl}/chat/completions`
+  // custom 走用户配置的 base URL；其他 provider 用 spec.baseUrl。
+  const baseUrl = opts.provider === 'custom' ? (opts.baseUrl ?? '').trim() : spec.baseUrl
+  if (!baseUrl) {
+    return { ok: false, errorMessage: 'Base URL 不能为空' }
+  }
+  const url = `${baseUrl.replace(/\/+$/, '')}/chat/completions`
   const headers: Record<string, string> = {
     'Authorization': `Bearer ${opts.apiKey}`,
     'Content-Type': 'application/json',
@@ -98,6 +153,7 @@ export async function callProvider(opts: CallProviderOptions): Promise<CallProvi
     // 各 provider 的思考控制参数：
     // - OpenRouter：标准 reasoning.enabled / reasoning.effort（支持三档）
     // - GLM 原生 / DeepSeek V4 原生：thinking.type 只有 enabled|disabled 二档
+    // - custom：略过——目标服务参数未知，不冒险发任何思考开关
     if (opts.provider === 'openrouter') {
       body.reasoning = opts.reasoning === 'off'
         ? { enabled: false }

@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { storage, type Settings } from '../lib/storage'
-import { PROVIDERS, type ProviderId } from '../../lib/providers'
+import { PROVIDERS, type ProviderId, ensureCustomHostPermission } from '../../lib/providers'
 
-const PROVIDER_IDS: ProviderId[] = ['openrouter', 'glm', 'deepseek']
+const PROVIDER_IDS: ProviderId[] = ['openrouter', 'glm', 'deepseek', 'custom']
 
 export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
   const [provider, setProvider] = useState<ProviderId>('openrouter')
   const [apiKey, setApiKey] = useState('')
   const [model, setModel] = useState('')
+  const [baseUrl, setBaseUrl] = useState('')
 
   const spec = PROVIDERS[provider]
 
@@ -15,11 +16,27 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
     setProvider(next)
     setApiKey('')
     setModel('')
+    setBaseUrl('')
   }
 
-  const canFinishConfigured = apiKey.trim().length > 0 && model.trim().length > 0
+  const canFinishConfigured =
+    apiKey.trim().length > 0
+    && model.trim().length > 0
+    && (provider !== 'custom' || baseUrl.trim().length > 0)
 
   const finish = async (withConfig: boolean) => {
+    // custom provider 需要先抢用户手势上下文请求 host_permission，否则 fetch 会被
+    // MV3 拦截。await storage.getSettings 之前必须先发起 permissions.request，
+    // 否则用户手势会被 await 吃掉，弹框会被 Chrome 拒绝。
+    if (withConfig && provider === 'custom') {
+      const perm = await ensureCustomHostPermission(baseUrl)
+      if (!perm.ok) {
+        alert(perm.reason === 'bad-url'
+          ? 'Base URL 格式不正确'
+          : '需要授予该域名访问权限才能使用 custom provider')
+        return
+      }
+    }
     const existing = await storage.getSettings()
     const next: Settings = withConfig
       ? {
@@ -27,7 +44,9 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
           activeProvider: provider,
           providers: {
             ...existing.providers,
-            [provider]: { apiKey: apiKey.trim(), model: model.trim() },
+            [provider]: provider === 'custom'
+              ? { apiKey: apiKey.trim(), model: model.trim(), baseUrl: baseUrl.trim() }
+              : { apiKey: apiKey.trim(), model: model.trim() },
           },
           onboardingComplete: true,
         }
@@ -80,6 +99,22 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
         <p className="text-[10px] text-gray-400">{spec.blurb}</p>
       </div>
 
+      {/* Base URL (仅 custom) */}
+      {provider === 'custom' && (
+        <div className="mb-4">
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+            Base URL
+          </label>
+          <input
+            type="text"
+            value={baseUrl}
+            onChange={e => setBaseUrl(e.target.value)}
+            placeholder={spec.baseUrlPlaceholder}
+            className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-hidden focus:border-bili-pink font-mono"
+          />
+        </div>
+      )}
+
       {/* API Key */}
       <div className="mb-4">
         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
@@ -93,7 +128,9 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
           className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-hidden focus:border-bili-pink font-mono"
         />
         <a href={spec.keyUrl} target="_blank" rel="noreferrer"
-          className="text-[10px] text-bili-blue mt-1 inline-block">去 {spec.label} 拿 Key →</a>
+          className="text-[10px] text-bili-blue mt-1 inline-block">
+          {provider === 'custom' ? '没 Key？去 longcat 申请 →' : `去 ${spec.label} 拿 Key →`}
+        </a>
       </div>
 
       {/* 模型 */}

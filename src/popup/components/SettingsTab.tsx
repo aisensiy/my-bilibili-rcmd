@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { storage, type Settings, DEFAULT_SETTINGS } from '../lib/storage'
-import { PROVIDERS, type ProviderId, callProvider } from '../../lib/providers'
+import { PROVIDERS, type ProviderId, callProvider, ensureCustomHostPermission } from '../../lib/providers'
 import AboutSection from './AboutSection'
 
 type TestStatus = 'idle' | 'testing' | 'ok' | 'fail'
 
-const PROVIDER_IDS: ProviderId[] = ['openrouter', 'glm', 'deepseek']
+const PROVIDER_IDS: ProviderId[] = ['openrouter', 'glm', 'deepseek', 'custom']
 
 export default function SettingsTab() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
@@ -16,12 +16,16 @@ export default function SettingsTab() {
   const [showKey, setShowKey] = useState(false)
   const [testStatus, setTestStatus] = useState<TestStatus>('idle')
   const [testMsg, setTestMsg] = useState('')
+  // 检测当前 SettingsTab 是否渲染在独立标签页里。popup 模式下要提示用户
+  // 粘贴长 URL/Key 时弹窗会失焦关闭，建议切到标签页配置。
+  const [isInTab, setIsInTab] = useState(false)
 
   useEffect(() => {
     storage.getSettings().then(s => {
       setSettings(s)
       setSavedSnapshot(s)
     })
+    chrome.tabs.getCurrent(tab => setIsInTab(!!tab))
   }, [])
 
   const isDirty = savedSnapshot !== null
@@ -48,6 +52,20 @@ export default function SettingsTab() {
     const key = cfg.apiKey.trim()
     if (!key) { setTestStatus('fail'); setTestMsg('请先填写 API Key'); return }
     if (!cfg.model.trim()) { setTestStatus('fail'); setTestMsg('请先填写模型 id'); return }
+    if (active === 'custom' && !(cfg.baseUrl ?? '').trim()) {
+      setTestStatus('fail'); setTestMsg('请先填写 Base URL'); return
+    }
+
+    // MV3 下 custom baseUrl 不在 host_permissions 时 fetch 会被拦截。
+    // 把权限请求放在 setState 之前，避免吃掉用户手势上下文。
+    if (active === 'custom') {
+      const perm = await ensureCustomHostPermission(cfg.baseUrl)
+      if (!perm.ok) {
+        setTestStatus('fail')
+        setTestMsg(perm.reason === 'bad-url' ? 'Base URL 格式不正确' : '未授予该域名访问权限，无法连接')
+        return
+      }
+    }
 
     setTestStatus('testing')
     setTestMsg('')
@@ -56,6 +74,7 @@ export default function SettingsTab() {
       provider: active,
       apiKey: key,
       model: cfg.model.trim(),
+      baseUrl: cfg.baseUrl?.trim(),
       messages: [{ role: 'user' as const, content: '用一句话说你好，不超过10个字。' }],
     }
 
@@ -79,6 +98,21 @@ export default function SettingsTab() {
   }
 
   const save = async () => {
+    // 保存设置时也提前请求 custom 域的权限。否则用户填完直接 Save 没点过 Test，
+    // 后台自动分析触发时拿不到权限、又不在用户手势里没法弹框，分析会静默失败。
+    if (settings.activeProvider === 'custom') {
+      const cur = settings.providers.custom
+      if ((cur.baseUrl ?? '').trim()) {
+        const perm = await ensureCustomHostPermission(cur.baseUrl)
+        if (!perm.ok) {
+          setTestStatus('fail')
+          setTestMsg(perm.reason === 'bad-url'
+            ? 'Base URL 格式不正确，未保存'
+            : '需要授予该域名访问权限才能使用 custom provider，未保存')
+          return
+        }
+      }
+    }
     await storage.setSettings(settings)
     setSavedSnapshot(settings)
     setSavedFlash(true)
@@ -93,6 +127,21 @@ export default function SettingsTab() {
   return (
     <div className="h-full flex flex-col">
       <div className="flex-1 overflow-y-auto p-4 pb-2">
+      {/* 弹窗失焦提示。Chrome 弹窗在切窗口/切应用时会自动关闭——
+          粘贴 URL/Key 几乎必断，所以在 popup 模式下显式提示并提供切换入口。 */}
+      {!isInTab && (
+        <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-[11px] text-amber-800 leading-relaxed">
+          💡 粘贴 URL / Key 时弹窗会自动关闭，建议
+          <button
+            onClick={() => chrome.runtime.openOptionsPage()}
+            className="underline ml-0.5 font-medium hover:text-amber-900"
+          >
+            在新标签页打开配置
+          </button>
+          。
+        </div>
+      )}
+
       {/* AI 提供商 */}
       <div className="mb-4">
         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
@@ -116,6 +165,29 @@ export default function SettingsTab() {
         <p className="text-[10px] text-gray-400">{spec.blurb}</p>
       </div>
 
+      {/* Base URL (仅 custom) */}
+      {active === 'custom' && (
+        <div className="mb-4">
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+            Base URL
+          </label>
+          <input
+            type="text"
+            value={cfg.baseUrl ?? ''}
+            onChange={e => updateProviderCfg({ baseUrl: e.target.value })}
+            placeholder={spec.baseUrlPlaceholder}
+            className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-hidden focus:border-bili-pink font-mono"
+          />
+          <p className="text-[10px] text-gray-400 mt-1">
+            OpenAI 兼容的 chat/completions 服务地址，会拼上 /chat/completions。
+          </p>
+          <p className="text-[10px] text-gray-400 mt-1">
+            如遇 CORS 错误：目标服务需允许 chrome-extension origin 访问。
+            longcat / 大多商业 API 已默认开放；自建 ollama / vLLM 通常需要在服务端配置。
+          </p>
+        </div>
+      )}
+
       {/* API Key */}
       <div className="mb-4">
         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
@@ -138,8 +210,13 @@ export default function SettingsTab() {
         </div>
         <p className="text-[10px] text-gray-400 mt-1">
           Key 仅存储在本地，不会上传任何服务器。
-          <a href={spec.keyUrl} target="_blank" rel="noreferrer"
-            className="text-bili-blue ml-1">去 {spec.label} 拿 Key →</a>
+          {active === 'custom' ? (
+            <a href={spec.keyUrl} target="_blank" rel="noreferrer"
+              className="text-bili-blue ml-1">没 Key？去 longcat 申请 →</a>
+          ) : (
+            <a href={spec.keyUrl} target="_blank" rel="noreferrer"
+              className="text-bili-blue ml-1">去 {spec.label} 拿 Key →</a>
+          )}
         </p>
       </div>
 

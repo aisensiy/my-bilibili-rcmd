@@ -41,7 +41,8 @@ export interface UserProfile {
 
 export interface ProviderConfig {
   apiKey: string
-  model: string  // 由用户手输；初始为空
+  model: string   // 由用户手输；初始为空
+  baseUrl?: string // 仅 'custom' provider 用；其他 provider 忽略此字段
 }
 
 export interface Settings {
@@ -50,6 +51,7 @@ export interface Settings {
     openrouter: ProviderConfig
     glm: ProviderConfig
     deepseek: ProviderConfig
+    custom: ProviderConfig
   }
   triggerThreshold: number
   debugMode: boolean
@@ -78,6 +80,7 @@ export const DEFAULT_SETTINGS: Settings = {
     openrouter: { apiKey: '', model: '' },
     glm: { apiKey: '', model: '' },
     deepseek: { apiKey: '', model: '' },
+    custom: { apiKey: '', model: '', baseUrl: '' },
   },
   triggerThreshold: 5,
   debugMode: false,
@@ -134,6 +137,7 @@ export const storage = {
           },
           glm: { apiKey: '', model: '' },
           deepseek: { apiKey: '', model: '' },
+          custom: { apiKey: '', model: '', baseUrl: '' },
         },
         triggerThreshold: typeof legacy.triggerThreshold === 'number' ? legacy.triggerThreshold : 5,
         debugMode: typeof legacy.debugMode === 'boolean' ? legacy.debugMode : false,

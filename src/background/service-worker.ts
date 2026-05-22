@@ -75,6 +75,10 @@ async function buildProfile(): Promise<void> {
     console.log(`[BiliFilter] No model id for ${activeProvider}, skipping analysis`)
     return
   }
+  if (activeProvider === 'custom' && !providerCfg.baseUrl) {
+    console.log('[BiliFilter] No base URL for custom provider, skipping analysis')
+    return
+  }
 
   const recentActions: Action[] = (actions as Action[]).slice(0, 50)
 
@@ -119,6 +123,7 @@ ${JSON.stringify(userProfile, null, 2)}
       provider: activeProvider,
       apiKey: providerCfg.apiKey,
       model: providerCfg.model,
+      baseUrl: providerCfg.baseUrl,
       messages: [{ role: 'user', content: prompt }],
       responseFormat: 'json_object',
       temperature: 0.3,

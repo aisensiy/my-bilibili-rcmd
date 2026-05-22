@@ -44,3 +44,29 @@ body {
   background: #d9d9d9;
   border-radius: 4px;
 }
+
+/*
+  Tab 模式：当 popup HTML 在独立标签页里打开（options_ui 或"↗"按钮）时，
+  body 被 JS 添加 .tab-mode 类，覆盖 index.html 里硬编码的 420×560 inline 样式，
+  把应用渲染成自然流的页面（max-width 720px 居中），不做浮动卡片也不固定视口高。
+
+  关键差异 vs. popup 模式：高度用 auto + min-height 100vh，让 body 自身滚动；
+  配合 App.tsx 在 tab 模式下去掉外层 h-full / 内容包裹 overflow-hidden，
+  内部 tab 组件的 `h-full flex flex-col + flex-1 overflow-y-auto` 都退化成
+  natural flow，保存栏/重新分析按钮等不再钉在视口底部，而是跟在内容后面。
+*/
+body.tab-mode {
+  width: 100vw !important;
+  height: auto !important;
+  min-height: 100vh;
+  background: white;
+  overflow: auto !important;
+  padding: 0 !important;
+}
+body.tab-mode #root {
+  width: 100%;
+  max-width: 720px;
+  height: auto;
+  min-height: 100vh;
+  margin: 0 auto;
+}
