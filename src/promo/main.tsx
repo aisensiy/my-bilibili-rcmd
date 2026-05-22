@@ -10,6 +10,7 @@ import { createRoot } from 'react-dom/client'
 import HistoryInsights from './scenes/history-insights'
 import FilterRecommendations from './scenes/filter-recommendations'
 import KeywordsBlocking from './scenes/keywords-blocking'
+import MultiProvider from './scenes/multi-provider'
 import '../extension/index.css'
 
 interface SceneSpec {
@@ -33,6 +34,11 @@ const SCENES: Record<string, SceneSpec> = {
     component: KeywordsBlocking,
     name: 'Keywords Blocking',
     description: '主动关键词屏蔽：手输词命中即隐藏，AI 不参与',
+  },
+  'multi-provider': {
+    component: MultiProvider,
+    name: 'Multi-Provider',
+    description: '多供应商 + 自定义：OpenRouter / 智谱 / DeepSeek / 任意 OpenAI 兼容服务',
   },
 }
 
