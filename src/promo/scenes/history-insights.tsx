@@ -104,8 +104,8 @@ export default function HistoryInsightsScene() {
       {/* 右浮：真实 popup（用 ui 组件渲染） */}
       <aside style={{
         position: 'absolute',
-        right: 79, top: 100,
-        width: 389, height: 680,
+        right: 79, top: 130,
+        width: 389, height: 670,
         borderRadius: 8,
         overflow: 'hidden',
         background: 'white',
@@ -114,7 +114,7 @@ export default function HistoryInsightsScene() {
         zIndex: 5,
       }}>
         <PopupShell active="history" variant="popup">
-          <HistoryView actions={recentActions.slice(0, 6)} stats={demoStats} />
+          <HistoryView actions={recentActions.slice(0, 5)} stats={demoStats} />
         </PopupShell>
       </aside>
     </Stage>
