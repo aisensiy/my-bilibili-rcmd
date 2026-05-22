@@ -9,6 +9,7 @@
 import { createRoot } from 'react-dom/client'
 import HistoryInsights from './scenes/history-insights'
 import FilterRecommendations from './scenes/filter-recommendations'
+import KeywordsBlocking from './scenes/keywords-blocking'
 import '../extension/index.css'
 
 interface SceneSpec {
@@ -27,6 +28,11 @@ const SCENES: Record<string, SceneSpec> = {
     component: FilterRecommendations,
     name: 'Filter Recommendations',
     description: '过滤推荐流：按 AI 兴趣画像 + 关键词自动屏蔽，加 hover 主动操作',
+  },
+  'keywords-blocking': {
+    component: KeywordsBlocking,
+    name: 'Keywords Blocking',
+    description: '主动关键词屏蔽：手输词命中即隐藏，AI 不参与',
   },
 }
 
