@@ -20,8 +20,8 @@ const PROVIDER_IDS: ProviderId[] = ['openrouter', 'glm', 'deepseek', 'custom']
 
 const COMPARE_CARDS: { id: ProviderId; badge: string; badgeColor: string; blurb: string; hint: string }[] = [
   { id: 'openrouter', badge: '国外',     badgeColor: '#0b93d7', blurb: '模型最全',       hint: 'GPT · Claude · Gemini 都有' },
-  { id: 'glm',        badge: '国内',     badgeColor: '#2b9d6e', blurb: '低延迟',         hint: '例：glm-4-flash' },
-  { id: 'deepseek',   badge: '国内',     badgeColor: '#2b9d6e', blurb: '便宜',           hint: '例：deepseek-chat' },
+  { id: 'glm',        badge: '国内',     badgeColor: '#2b9d6e', blurb: '低延迟',         hint: '例：GLM-5.1' },
+  { id: 'deepseek',   badge: '国内',     badgeColor: '#2b9d6e', blurb: '便宜',           hint: '例：DeepSeek-V4-Flash' },
   { id: 'custom',     badge: '灵活',     badgeColor: '#fb7299', blurb: 'OpenAI 兼容入口', hint: 'longcat · Ollama · vLLM · One-API' },
 ]
 

@@ -30,14 +30,14 @@ export const PROVIDERS: Record<ProviderId, ProviderSpec> = {
     baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
     keyUrl: 'https://open.bigmodel.cn/apikey/platform',
     blurb: '国内服务，低延迟',
-    modelPlaceholder: '例：glm-4-flash',
+    modelPlaceholder: '例：GLM-5.1',
   },
   deepseek: {
     label: 'DeepSeek',
     baseUrl: 'https://api.deepseek.com/v1',
     keyUrl: 'https://platform.deepseek.com/api_keys',
     blurb: '国内服务，便宜',
-    modelPlaceholder: '例：deepseek-chat',
+    modelPlaceholder: '例：DeepSeek-V4-Flash',
   },
   custom: {
     label: '自定义',
