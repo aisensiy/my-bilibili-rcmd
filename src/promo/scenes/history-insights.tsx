@@ -96,7 +96,7 @@ export default function HistoryInsightsScene() {
       <BrowserChrome
         url="bilibili.com"
         tabTitle="哔哩哔哩"
-        style={{ left: 43, bottom: 56, width: 740, height: 310 }}
+        style={{ left: 43, bottom: 56, width: 740, height: 380 }}
       >
         <BiliPage cards={RECOMMEND_CARDS} />
       </BrowserChrome>
