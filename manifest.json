@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "我的 Bilibili 推荐",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "用 LLM 看你的 B 站行为生成兴趣画像，自动过滤推荐流",
   "permissions": [
     "storage"
