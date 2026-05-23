@@ -45,7 +45,7 @@ export default function PromoTileScene() {
         color: '#171b26',
         zIndex: 4,
       }}>
-        让 AI <span style={{ color: '#ff4f86' }}>帮你刷</span> B 站
+        让 B 站推荐 <span style={{ color: '#ff4f86' }}>听你的</span>
       </div>
     </Stage>
   )
