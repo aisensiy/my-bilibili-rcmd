@@ -5,8 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:promo": "vite -c vite.config.promo.ts",
     "build": "vite build",
-    "preview": "vite preview"
+    "build:promo": "vite build -c vite.config.promo.ts",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "check:bundle": "bash scripts/check-bundle.sh"
   },
   "dependencies": {
     "react": "^18.3.1",

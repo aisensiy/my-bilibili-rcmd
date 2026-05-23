@@ -1,8 +1,8 @@
-import type { Action, UserProfile } from '../popup/lib/storage'
+import type { Action, UserProfile } from '../extension/lib/storage'
 import { callProvider } from '../lib/providers'
 
-// Intentionally a local copy — service worker shouldn't import popup-only modules.
-// Keep `analysis` in sync with src/popup/lib/storage.ts:DEFAULT_PROFILE.
+// Intentionally a local copy — service worker shouldn't import extension-only modules.
+// Keep `analysis` in sync with src/extension/lib/storage.ts:DEFAULT_PROFILE.
 const DEFAULT_PROFILE: UserProfile = {
   interests: [],
   disinterests: [],
@@ -75,6 +75,10 @@ async function buildProfile(): Promise<void> {
     console.log(`[BiliFilter] No model id for ${activeProvider}, skipping analysis`)
     return
   }
+  if (activeProvider === 'custom' && !providerCfg.baseUrl) {
+    console.log('[BiliFilter] No base URL for custom provider, skipping analysis')
+    return
+  }
 
   const recentActions: Action[] = (actions as Action[]).slice(0, 50)
 
@@ -119,6 +123,7 @@ ${JSON.stringify(userProfile, null, 2)}
       provider: activeProvider,
       apiKey: providerCfg.apiKey,
       model: providerCfg.model,
+      baseUrl: providerCfg.baseUrl,
       messages: [{ role: 'user', content: prompt }],
       responseFormat: 'json_object',
       temperature: 0.3,

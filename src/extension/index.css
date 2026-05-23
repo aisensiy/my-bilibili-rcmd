@@ -1,0 +1,84 @@
+@import 'tailwindcss';
+
+/*
+  Explicit @source declarations so promo (root=src/promo) still sees Tailwind
+  classes used in ui/ and extension/. Without these, Tailwind v4's auto source
+  detection — which walks files relative to vite's `root` — only finds
+  src/promo/* and skips every Tailwind class on PopupShell, HistoryView,
+  ProfileView, KeywordsView, OnboardingView. Extension build also imports this
+  CSS but already finds those files via project-root auto-detection, so these
+  lines are no-ops there.
+*/
+@source "../ui/**/*.{ts,tsx}";
+@source "../extension/**/*.{ts,tsx}";
+
+@theme {
+  --color-bili-pink: #fb7299;
+  --color-bili-blue: #00a1d6;
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: #f8f9fa;
+  color: #18191c;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d9d9d9;
+  border-radius: 4px;
+}
+
+/*
+  Tab 模式：当 popup HTML 在独立标签页里打开（options_ui 或"↗"按钮）时，
+  body 被 JS 添加 .tab-mode 类，覆盖 index.html 里硬编码的 420×560 inline 样式，
+  把应用渲染成自然流的页面（max-width 720px 居中），不做浮动卡片也不固定视口高。
+
+  关键差异 vs. popup 模式：高度用 auto + min-height 100vh，让 body 自身滚动；
+  配合 App.tsx 在 tab 模式下去掉外层 h-full / 内容包裹 overflow-hidden，
+  内部 tab 组件的 `h-full flex flex-col + flex-1 overflow-y-auto` 都退化成
+  natural flow，保存栏/重新分析按钮等不再钉在视口底部，而是跟在内容后面。
+*/
+body.tab-mode {
+  width: 100vw !important;
+  height: auto !important;
+  min-height: 100vh;
+  background: white;
+  overflow: auto !important;
+  padding: 0 !important;
+}
+body.tab-mode #root {
+  width: 100%;
+  max-width: 720px;
+  height: auto;
+  min-height: 100vh;
+  margin: 0 auto;
+}

@@ -12,6 +12,9 @@
     "https://open.bigmodel.cn/*",
     "https://api.deepseek.com/*"
   ],
+  "optional_host_permissions": [
+    "<all_urls>"
+  ],
   "background": {
     "service_worker": "src/background/service-worker.ts",
     "type": "module"
@@ -38,13 +41,17 @@
     }
   ],
   "action": {
-    "default_popup": "src/popup/index.html",
+    "default_popup": "src/extension/index.html",
     "default_title": "我的 Bilibili 推荐",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     }
+  },
+  "options_ui": {
+    "page": "src/extension/index.html",
+    "open_in_tab": true
   },
   "icons": {
     "16": "icons/icon16.png",

@@ -1,76 +1,32 @@
-// Shared types and storage utilities
-import type { ProviderId } from '../../lib/providers'
+// Storage implementation + defaults. Type definitions moved to @/ui/types so the
+// extension UI layer and the promo subapp can share them. The runtime `storage`
+// object and DEFAULT_SETTINGS stay here because they touch chrome.storage.
+import type {
+  Action,
+  PlayAction,
+  Stats,
+  StorageData,
+  UserProfile,
+  Settings,
+} from '@/ui/types'
+import { DEFAULT_PROFILE } from '@/ui/types'
 
-export interface PlayAction {
-  type: 'play'
-  bvid: string
-  title: string
-  upName: string
-  uid?: string
-  watchRatio: number // 0-1
-  watchedSeconds?: number
-  durationSeconds?: number
-  timestamp: number
-  sessionId?: string
-}
+// Re-export types so existing relative imports (`from '../lib/storage'`) inside
+// extension/ keep working. Source-level callers don't need to know the types
+// physically live in ui/types.ts.
+export type {
+  Action,
+  PlayAction,
+  DisinterestedAction,
+  BlockUpAction,
+  UserProfile,
+  Stats,
+  ProviderConfig,
+  Settings,
+  StorageData,
+} from '@/ui/types'
 
-export interface DisinterestedAction {
-  type: 'disinterested'
-  bvid: string
-  title: string
-  upName: string
-  timestamp: number
-}
-
-export interface BlockUpAction {
-  type: 'blockUp'
-  upName: string
-  uid?: string
-  timestamp: number
-}
-
-export type Action = PlayAction | DisinterestedAction | BlockUpAction
-
-export interface UserProfile {
-  interests: string[]
-  disinterests: string[]
-  blockedUps: string[]
-  analysis: string
-  lastUpdated: number
-}
-
-export interface ProviderConfig {
-  apiKey: string
-  model: string  // 由用户手输；初始为空
-}
-
-export interface Settings {
-  activeProvider: ProviderId
-  providers: {
-    openrouter: ProviderConfig
-    glm: ProviderConfig
-    deepseek: ProviderConfig
-  }
-  triggerThreshold: number
-  debugMode: boolean
-  onboardingComplete: boolean
-}
-
-export interface StorageData {
-  actions: Action[]
-  userProfile: UserProfile
-  blockedKeywords: string[]
-  settings: Settings
-  actionsSinceLastAnalysis: number
-}
-
-export const DEFAULT_PROFILE: UserProfile = {
-  interests: [],
-  disinterests: [],
-  blockedUps: [],
-  analysis: '尚未分析。',
-  lastUpdated: 0,
-}
+export { DEFAULT_PROFILE } from '@/ui/types'
 
 export const DEFAULT_SETTINGS: Settings = {
   activeProvider: 'openrouter',
@@ -78,6 +34,7 @@ export const DEFAULT_SETTINGS: Settings = {
     openrouter: { apiKey: '', model: '' },
     glm: { apiKey: '', model: '' },
     deepseek: { apiKey: '', model: '' },
+    custom: { apiKey: '', model: '', baseUrl: '' },
   },
   triggerThreshold: 5,
   debugMode: false,
@@ -120,9 +77,8 @@ export const storage = {
     const { settings } = await get(['settings'])
     if (!settings) return DEFAULT_SETTINGS
 
-    // 检测旧 schema：有 openrouterKey 字段 → 迁移
+    // Detect legacy schema (had openrouterKey at the top level) → migrate.
     const legacy = settings as unknown as Record<string, unknown>
-    // 新 schema 一定有 providers 字段；缺失就当成 legacy 处理
     if (!('providers' in legacy)) {
       const migrated: Settings = {
         ...DEFAULT_SETTINGS,
@@ -134,16 +90,17 @@ export const storage = {
           },
           glm: { apiKey: '', model: '' },
           deepseek: { apiKey: '', model: '' },
+          custom: { apiKey: '', model: '', baseUrl: '' },
         },
         triggerThreshold: typeof legacy.triggerThreshold === 'number' ? legacy.triggerThreshold : 5,
         debugMode: typeof legacy.debugMode === 'boolean' ? legacy.debugMode : false,
-        onboardingComplete: true,  // 老用户已经知道这是干啥的，不需要再走 onboarding
+        onboardingComplete: true,  // legacy users already know what this is, don't re-onboard
       }
       await set({ settings: migrated })
       return migrated
     }
 
-    // 新 schema：用默认值兜底缺字段
+    // New schema: fill missing fields from defaults.
     return {
       ...DEFAULT_SETTINGS,
       ...(settings as Settings),
@@ -177,7 +134,7 @@ export const storage = {
     return actionsSinceLastAnalysis
   },
 
-  async getStats(): Promise<{ totalActions: number; playCount: number; blockedCount: number; avgWatchRatio: number }> {
+  async getStats(): Promise<Stats> {
     const actions = await this.getActions()
     const plays = actions.filter((a): a is PlayAction => a.type === 'play')
     const blocked = actions.filter(a => a.type === 'disinterested' || a.type === 'blockUp')

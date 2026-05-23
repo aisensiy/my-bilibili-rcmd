@@ -1,120 +1,128 @@
-import { useEffect, useState } from 'react'
-import { storage, type Settings, DEFAULT_SETTINGS } from '../lib/storage'
-import { PROVIDERS, type ProviderId, callProvider } from '../../lib/providers'
-import AboutSection from './AboutSection'
+// src/ui/SettingsView.tsx
+import { useState } from 'react'
+import type { ProviderId, ProviderSpec, Settings } from './types'
 
-type TestStatus = 'idle' | 'testing' | 'ok' | 'fail'
+export interface SettingsViewProps {
+  // pure data
+  providers: Record<ProviderId, ProviderSpec>
+  providerIds: ProviderId[]
+  settings: Settings
+  /** dirty = current settings differ from last saved snapshot (computed in container) */
+  isDirty: boolean
+  /** transient "✓ 已保存" pulse after a successful save (container manages timer) */
+  savedFlash: boolean
+  /** Whether the popup is rendered in a full tab (vs Chrome popup). Drives the
+   *  "粘贴 URL/Key 时弹窗会关闭" banner — hidden in tab mode. */
+  isInTab: boolean
+  /** Test-connection state. Container manages the async flow + status transitions. */
+  testStatus: 'idle' | 'testing' | 'ok' | 'fail'
+  testMsg: string
 
-const PROVIDER_IDS: ProviderId[] = ['openrouter', 'glm', 'deepseek']
+  // optional callbacks — when missing, controls are disabled (per ui/ discipline)
+  onSwitchProvider?: (id: ProviderId) => void
+  onUpdateProviderCfg?: (patch: { apiKey?: string; model?: string; baseUrl?: string }) => void
+  onUpdateThreshold?: (n: number) => void
+  onToggleDebug?: () => void
+  onTestConnection?: () => void
+  onSave?: () => void
+  onOpenInTab?: () => void
+  onReopenOnboarding?: () => void
+  onClearAll?: () => void
+  /** AboutSection slot — extension passes its own AboutSection component;
+   *  promo can pass null. Keeps SettingsView free of extension-specific imports. */
+  aboutSlot?: React.ReactNode
+}
 
-export default function SettingsTab() {
-  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
-  // savedSnapshot 记录最近一次写入 storage 的 settings，用于判断"未保存修改"。
-  // null 表示初次加载尚未完成。
-  const [savedSnapshot, setSavedSnapshot] = useState<Settings | null>(null)
-  const [savedFlash, setSavedFlash] = useState(false)
+export default function SettingsView({
+  providers,
+  providerIds,
+  settings,
+  isDirty,
+  savedFlash,
+  isInTab,
+  testStatus,
+  testMsg,
+  onSwitchProvider,
+  onUpdateProviderCfg,
+  onUpdateThreshold,
+  onToggleDebug,
+  onTestConnection,
+  onSave,
+  onOpenInTab,
+  onReopenOnboarding,
+  onClearAll,
+  aboutSlot,
+}: SettingsViewProps) {
   const [showKey, setShowKey] = useState(false)
-  const [testStatus, setTestStatus] = useState<TestStatus>('idle')
-  const [testMsg, setTestMsg] = useState('')
-
-  useEffect(() => {
-    storage.getSettings().then(s => {
-      setSettings(s)
-      setSavedSnapshot(s)
-    })
-  }, [])
-
-  const isDirty = savedSnapshot !== null
-    && JSON.stringify(settings) !== JSON.stringify(savedSnapshot)
 
   const active = settings.activeProvider
-  const spec = PROVIDERS[active]
+  const spec = providers[active]
   const cfg = settings.providers[active]
-
-  const updateProviderCfg = (patch: Partial<typeof cfg>) => {
-    setSettings(s => ({
-      ...s,
-      providers: { ...s.providers, [active]: { ...s.providers[active], ...patch } },
-    }))
-  }
-
-  const switchProvider = (next: ProviderId) => {
-    setSettings(s => ({ ...s, activeProvider: next }))
-    setTestStatus('idle')
-    setTestMsg('')
-  }
-
-  const testConnection = async () => {
-    const key = cfg.apiKey.trim()
-    if (!key) { setTestStatus('fail'); setTestMsg('请先填写 API Key'); return }
-    if (!cfg.model.trim()) { setTestStatus('fail'); setTestMsg('请先填写模型 id'); return }
-
-    setTestStatus('testing')
-    setTestMsg('')
-
-    const baseOpts = {
-      provider: active,
-      apiKey: key,
-      model: cfg.model.trim(),
-      messages: [{ role: 'user' as const, content: '用一句话说你好，不超过10个字。' }],
-    }
-
-    // 先走"快路径"：关闭思考 + 1024 token 预算，连通验证又快又省。
-    let result = await callProvider({ ...baseOpts, reasoning: 'off', maxTokens: 1024 })
-
-    // 部分思考型模型不接受 thinking/reasoning 关闭参数（返回 4xx），
-    // 或忽略后仍然思考把 1024 吃光（finish_reason=length，无 content）。
-    // 退到"慢路径"：不传 reasoning，预算抬到 4096 给思考留空间。
-    if (!result.ok) {
-      result = await callProvider({ ...baseOpts, maxTokens: 4096 })
-    }
-
-    if (!result.ok) {
-      setTestStatus('fail')
-      setTestMsg(result.errorMessage ?? `HTTP ${result.errorStatus ?? '???'}`)
-    } else {
-      setTestStatus('ok')
-      setTestMsg(`模型回复：${result.content}`)
-    }
-  }
-
-  const save = async () => {
-    await storage.setSettings(settings)
-    setSavedSnapshot(settings)
-    setSavedFlash(true)
-    setTimeout(() => setSavedFlash(false), 2000)
-  }
-
-  const reopenOnboarding = async () => {
-    await storage.setSettings({ ...settings, onboardingComplete: false })
-    window.close()
-  }
 
   return (
     <div className="h-full flex flex-col">
       <div className="flex-1 overflow-y-auto p-4 pb-2">
+      {/* 弹窗失焦提示。Chrome 弹窗在切窗口/切应用时会自动关闭——
+          粘贴 URL/Key 几乎必断，所以在 popup 模式下显式提示并提供切换入口。 */}
+      {!isInTab && (
+        <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-[11px] text-amber-800 leading-relaxed">
+          💡 粘贴 URL / Key 时弹窗会自动关闭，建议
+          <button
+            onClick={() => onOpenInTab?.()}
+            className="underline ml-0.5 font-medium hover:text-amber-900"
+          >
+            在新标签页打开配置
+          </button>
+          。
+        </div>
+      )}
+
       {/* AI 提供商 */}
       <div className="mb-4">
         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
           AI 提供商
         </label>
         <div className="flex gap-1.5 mb-2">
-          {PROVIDER_IDS.map(pid => (
+          {providerIds.map(pid => (
             <button
               key={pid}
-              onClick={() => switchProvider(pid)}
+              onClick={() => onSwitchProvider?.(pid)}
+              disabled={!onSwitchProvider}
               className={`flex-1 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
                 active === pid
                   ? 'border-bili-pink text-bili-pink bg-[#fff5f8]'
                   : 'border-gray-200 text-gray-500 hover:text-gray-700'
               }`}
             >
-              {PROVIDERS[pid].label}
+              {providers[pid].label}
             </button>
           ))}
         </div>
         <p className="text-[10px] text-gray-400">{spec.blurb}</p>
       </div>
+
+      {/* Base URL (仅 custom) */}
+      {active === 'custom' && (
+        <div className="mb-4">
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+            Base URL
+          </label>
+          <input
+            type="text"
+            value={cfg.baseUrl ?? ''}
+            onChange={e => onUpdateProviderCfg?.({ baseUrl: e.target.value })}
+            placeholder={spec.baseUrlPlaceholder}
+            className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-hidden focus:border-bili-pink font-mono"
+          />
+          <p className="text-[10px] text-gray-400 mt-1">
+            OpenAI 兼容的 chat/completions 服务地址，会拼上 /chat/completions。
+          </p>
+          <p className="text-[10px] text-gray-400 mt-1">
+            如遇 CORS 错误：目标服务需允许 chrome-extension origin 访问。
+            longcat / 大多商业 API 已默认开放；自建 ollama / vLLM 通常需要在服务端配置。
+          </p>
+        </div>
+      )}
 
       {/* API Key */}
       <div className="mb-4">
@@ -125,7 +133,7 @@ export default function SettingsTab() {
           <input
             type={showKey ? 'text' : 'password'}
             value={cfg.apiKey}
-            onChange={e => updateProviderCfg({ apiKey: e.target.value })}
+            onChange={e => onUpdateProviderCfg?.({ apiKey: e.target.value })}
             placeholder="填入你的 API Key"
             className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 outline-hidden focus:border-bili-pink font-mono"
           />
@@ -138,8 +146,13 @@ export default function SettingsTab() {
         </div>
         <p className="text-[10px] text-gray-400 mt-1">
           Key 仅存储在本地，不会上传任何服务器。
-          <a href={spec.keyUrl} target="_blank" rel="noreferrer"
-            className="text-bili-blue ml-1">去 {spec.label} 拿 Key →</a>
+          {active === 'custom' ? (
+            <a href={spec.keyUrl} target="_blank" rel="noreferrer"
+              className="text-bili-blue ml-1">没 Key？去 longcat 申请 →</a>
+          ) : (
+            <a href={spec.keyUrl} target="_blank" rel="noreferrer"
+              className="text-bili-blue ml-1">去 {spec.label} 拿 Key →</a>
+          )}
         </p>
       </div>
 
@@ -151,7 +164,7 @@ export default function SettingsTab() {
         <input
           type="text"
           value={cfg.model}
-          onChange={e => updateProviderCfg({ model: e.target.value })}
+          onChange={e => onUpdateProviderCfg?.({ model: e.target.value })}
           placeholder={spec.modelPlaceholder}
           className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-hidden focus:border-bili-pink font-mono"
         />
@@ -163,8 +176,8 @@ export default function SettingsTab() {
       {/* 测试连接 */}
       <div className="mb-4">
         <button
-          onClick={testConnection}
-          disabled={testStatus === 'testing'}
+          onClick={() => onTestConnection?.()}
+          disabled={testStatus === 'testing' || !onTestConnection}
           className="w-full py-2 rounded-lg text-sm font-medium border transition-colors disabled:opacity-60"
           style={{
             borderColor: testStatus === 'ok' ? '#4caf50' : testStatus === 'fail' ? '#f44336' : '#d9d9d9',
@@ -192,7 +205,7 @@ export default function SettingsTab() {
           max={50}
           step={1}
           value={settings.triggerThreshold}
-          onChange={e => setSettings(s => ({ ...s, triggerThreshold: Number(e.target.value) }))}
+          onChange={e => onUpdateThreshold?.(Number(e.target.value))}
           className="w-full accent-bili-pink"
         />
         <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
@@ -208,12 +221,8 @@ export default function SettingsTab() {
           <p className="text-[10px] text-gray-400 mt-0.5">被过滤的内容不隐藏，改为标记显示命中原因</p>
         </div>
         <button
-          onClick={() => {
-            const next = { ...settings, debugMode: !settings.debugMode }
-            setSettings(next)
-            storage.setSettings(next)
-            setSavedSnapshot(next)
-          }}
+          onClick={() => onToggleDebug?.()}
+          disabled={!onToggleDebug}
           className={`relative w-10 h-5 rounded-full transition-colors ${
             settings.debugMode ? 'bg-bili-pink' : 'bg-gray-300'
           }`}
@@ -229,26 +238,21 @@ export default function SettingsTab() {
       {/* 引导 */}
       <div className="mt-6 pt-4 border-t border-gray-100">
         <button
-          onClick={reopenOnboarding}
+          onClick={() => onReopenOnboarding?.()}
           className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
         >
           重新查看引导
         </button>
       </div>
 
-      <AboutSection />
+      {aboutSlot}
 
       {/* 危险操作 */}
       <div className="mt-4 pt-4 border-t border-gray-100">
         <div className="text-xs font-semibold text-gray-400 mb-1">危险操作</div>
         <p className="text-[10px] text-gray-400 mb-2">所有数据只在本地。一键清除不可撤销。</p>
         <button
-          onClick={async () => {
-            if (confirm('确认清除所有记录和画像？此操作不可撤销。')) {
-              await chrome.storage.local.clear()
-              window.location.reload()
-            }
-          }}
+          onClick={() => onClearAll?.()}
           className="text-xs text-red-400 hover:text-red-600 transition-colors"
         >
           清除所有数据
@@ -259,8 +263,8 @@ export default function SettingsTab() {
       {/* 固定底部保存栏。常驻可见，避免用户填完 key/model 后误以为已生效。 */}
       <div className="px-4 py-3 border-t border-gray-100 bg-white">
         <button
-          onClick={save}
-          disabled={!isDirty && !savedFlash}
+          onClick={() => onSave?.()}
+          disabled={(!isDirty && !savedFlash) || !onSave}
           className="w-full py-2.5 rounded-lg text-sm font-medium text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ background: savedFlash ? '#4caf50' : isDirty ? '#fb7299' : '#9ca3af' }}
         >
