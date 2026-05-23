@@ -69,10 +69,10 @@ export default function HistoryInsightsScene() {
       {/* Hero 文案 */}
       <section style={{ position: 'absolute', left: 79, top: 155, zIndex: 3 }}>
         <h1 style={{ width: 690, fontSize: 56, lineHeight: 1.18, fontWeight: 900, color: '#171b26' }}>
-          留住你看过的<span style={{ color: '#ff4f86' }}>每一条</span>
+          AI <span style={{ color: '#ff4f86' }}>越来越懂你</span>
         </h1>
         <p style={{ marginTop: 16, fontSize: 20, lineHeight: 1.4, fontWeight: 600, color: '#5e6677' }}>
-          标题、UP、进度全部本地留痕，比原生历史更完整
+          完播率、标题、UP 全部本地留下 —— AI 拿来生成越来越准的兴趣画像
         </p>
         <div style={{ marginTop: 22, display: 'flex', alignItems: 'center', gap: 18 }}>
           <div style={{
@@ -81,14 +81,14 @@ export default function HistoryInsightsScene() {
             color: 'white', fontSize: 22, fontWeight: 800, lineHeight: 1,
             background: '#1b1d24',
             boxShadow: '0 12px 22px rgba(23, 27, 38, 0.12)',
-          }}>逐条记录</div>
+          }}>完播率</div>
           <div style={{
             height: 46, padding: '0 23px', borderRadius: 999,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             color: 'white', fontSize: 22, fontWeight: 800, lineHeight: 1,
             background: 'linear-gradient(135deg, #fb7299 0%, #ff4f86 100%)',
             boxShadow: '0 12px 22px rgba(23, 27, 38, 0.12)',
-          }}>本地统计</div>
+          }}>画像更准</div>
         </div>
       </section>
 
