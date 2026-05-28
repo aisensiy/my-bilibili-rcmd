@@ -133,6 +133,13 @@ const BV_RE = /\/video\/(BV\w+)/
 const UID_RE = /space\.bilibili\.com\/(\d+)/
 const HOMEPAGE_CARD_SELECTOR = '.bili-video-card'
 const VIDEO_PAGE_CARD_SELECTOR = '.next-play .video-page-card-small, .rec-list .video-page-card-small'
+const TRENDING_CONTAINER_SELECTOR = '.bili-dyn-search-trendings'
+const TRENDING_ITEM_SELECTOR = 'a.trending'
+
+// 本次会话内被显式「屏蔽」过的热搜原句。即便 LLM 抽出的关键词不字面命中
+// 原句，也保证该条在 storage.onChanged 重渲染后不会闪回。reload 后清空，
+// 但常见情况下抽出的词会写入 blockedKeywords 并命中原句，跨刷新依然隐藏。
+const blockedTrendingPhrases = new Set<string>()
 const STYLE_ID = 'bf-ext-content-style'
 const CONTENT_STYLE = `
 .bf-ext-actions {
@@ -230,6 +237,59 @@ const CONTENT_STYLE = `
   border-radius: 4px;
   pointer-events: none;
 }
+.bf-ext-trending {
+  position: relative;
+}
+.bf-ext-trending-btn {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: none;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+  background: rgba(251, 114, 153, 0.92);
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 5;
+}
+.bf-ext-trending:hover .bf-ext-trending-btn {
+  opacity: 1;
+}
+.bf-ext-trending-btn:hover {
+  background: rgba(251, 114, 153, 1);
+}
+.bf-ext-trending-hidden {
+  display: none !important;
+}
+.bf-ext-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  background: rgba(30, 30, 30, 0.92);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  z-index: 100000;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+  max-width: 80vw;
+}
+.bf-ext-toast--show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
 `
 
 function parseHomepageCard(el: HTMLElement): CardInfo | null {
@@ -316,6 +376,27 @@ function shouldHide(info: CardInfo): string | null {
   if (matchedKw) return `关键词命中「${matchedKw}」`
 
   return null
+}
+
+function parseTrendingPhrase(item: HTMLElement): string {
+  const fromText = item.querySelector<HTMLElement>('.text')?.textContent?.trim()
+  if (fromText) return fromText
+  const href = item.getAttribute('href') ?? ''
+  try {
+    return new URL(href, location.href).searchParams.get('keyword')?.trim() ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function shouldHideTrending(phrase: string): boolean {
+  if (!phrase) return false
+  if (blockedTrendingPhrases.has(phrase)) return true
+  const lower = phrase.toLowerCase()
+  const { keywords, profile } = filterData
+  if (keywords.some(kw => lower.includes(kw.toLowerCase()))) return true
+  if (profile.disinterests.some(tag => lower.includes(tag.toLowerCase()))) return true
+  return false
 }
 
 // ==================== Native feedback bridge ====================
@@ -601,6 +682,80 @@ function injectDebugOverlay(el: HTMLElement, reason: string): void {
   el.appendChild(overlay)
 }
 
+let toastTimer: ReturnType<typeof setTimeout> | null = null
+function showToast(message: string): void {
+  let toast = document.getElementById('bf-ext-toast')
+  if (!toast) {
+    toast = document.createElement('div')
+    toast.id = 'bf-ext-toast'
+    toast.className = 'bf-ext-toast'
+    document.body.appendChild(toast)
+  }
+  toast.textContent = message
+  requestAnimationFrame(() => toast!.classList.add('bf-ext-toast--show'))
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => toast!.classList.remove('bf-ext-toast--show'), 3500)
+}
+
+function buildTrendingButton(item: HTMLElement, phrase: string): HTMLButtonElement {
+  const btn = document.createElement('button')
+  btn.className = 'bf-ext-trending-btn'
+  btn.textContent = '屏蔽'
+  btn.title = `屏蔽话题「${phrase}」`
+  btn.addEventListener('click', (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!phrase) return
+    LOG('屏蔽话题（占位，未接 LLM）', { phrase })
+    blockedTrendingPhrases.add(phrase)
+    item.classList.add('bf-ext-trending-hidden')
+    showToast(`已隐藏「${phrase}」`)
+  })
+  return btn
+}
+
+function processTrendingItem(item: HTMLElement): void {
+  if (item.dataset.bfTrendingDone) return
+  item.dataset.bfTrendingDone = '1'
+  const phrase = parseTrendingPhrase(item)
+  if (!phrase) return
+  if (shouldHideTrending(phrase)) {
+    item.classList.add('bf-ext-trending-hidden')
+    return
+  }
+  item.classList.add('bf-ext-trending')
+  item.appendChild(buildTrendingButton(item, phrase))
+}
+
+function processTrendings(): void {
+  if (location.hostname !== 't.bilibili.com') return
+  document
+    .querySelectorAll<HTMLElement>(`${TRENDING_CONTAINER_SELECTOR} ${TRENDING_ITEM_SELECTOR}`)
+    .forEach(processTrendingItem)
+}
+
+function resetTrendings(): void {
+  if (location.hostname !== 't.bilibili.com') return
+  document
+    .querySelectorAll<HTMLElement>(`${TRENDING_CONTAINER_SELECTOR} ${TRENDING_ITEM_SELECTOR}`)
+    .forEach(item => {
+      delete item.dataset.bfTrendingDone
+      item.classList.remove('bf-ext-trending-hidden')
+      item.querySelector('.bf-ext-trending-btn')?.remove()
+    })
+  processTrendings()
+}
+
+let trendingScanRaf = 0
+function scheduleTrendingScan(): void {
+  if (location.hostname !== 't.bilibili.com') return
+  if (trendingScanRaf) return
+  trendingScanRaf = requestAnimationFrame(() => {
+    trendingScanRaf = 0
+    processTrendings()
+  })
+}
+
 // ==================== Process cards ====================
 function processCard(el: HTMLElement, isHomepage: boolean): void {
   if (el.dataset.bfDone) return
@@ -800,6 +955,7 @@ function startObserver(): void {
     if (needsScan) processAllCards()
     // Sidebar cards may have been moved or removed; reconcile portal positions.
     if (portalDirty || needsScan) schedulePortalSync()
+    scheduleTrendingScan()
   })
   const target = isVideoPage()
     ? document.querySelector('.right-container') ?? document.body
@@ -824,6 +980,7 @@ function watchNavigation(): void {
       ensureContentStyles()
       processAllCards()
       startObserver()
+      scheduleTrendingScan()
     }, 500)
   }
 }
@@ -855,6 +1012,7 @@ async function init(): Promise<void> {
   ensureContentStyles()
   setupPortalListeners()
   processAllCards()
+  processTrendings()
   startObserver()
   watchNavigation()
 
@@ -864,6 +1022,7 @@ async function init(): Promise<void> {
       await loadFilterData()
       resetAllCards()
       processAllCards()
+      resetTrendings()
     }
   })
 }
