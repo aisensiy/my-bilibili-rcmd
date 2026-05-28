@@ -10,6 +10,7 @@ import { createRoot } from 'react-dom/client'
 import HistoryInsights from './scenes/history-insights'
 import FilterRecommendations from './scenes/filter-recommendations'
 import KeywordsBlocking from './scenes/keywords-blocking'
+import HotSearchBlock from './scenes/hot-search-block'
 import MultiProvider from './scenes/multi-provider'
 import PromoTile from './scenes/promo-tile'
 import MarqueeBanner from './scenes/marquee-banner'
@@ -36,6 +37,11 @@ const SCENES: Record<string, SceneSpec> = {
     component: KeywordsBlocking,
     name: 'Keywords Blocking',
     description: '主动关键词屏蔽：手输词命中即隐藏，AI 不参与',
+  },
+  'hot-search-block': {
+    component: HotSearchBlock,
+    name: 'Hot Search Block',
+    description: '动态页热搜「屏蔽话题」：点一下话题下榜并记成行为，喂给画像',
   },
   'multi-provider': {
     component: MultiProvider,
