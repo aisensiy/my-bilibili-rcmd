@@ -100,7 +100,7 @@ ${JSON.stringify(userProfile, null, 2)}
 
 注意：
 - interests 是用户喜欢看的内容类型，从标题/行为推断（如"科技"、"编程"、"烹饪"等）
-- disinterests 是用户明确不感兴趣的类型（来自 disinterested 行为）
+- disinterests 是用户明确不感兴趣的类型（来自 disinterested 行为，以及 blockTopic 行为——把用户主动屏蔽的热搜话题 phrase 归纳成具体的不感兴趣标签，便于关键词匹配）
 - blockedUps 来自 blockUp 行为，直接取 upName
 - 标签要具体，方便后续关键词匹配（比如"军事"而不是"严肃内容"）`
 
@@ -202,6 +202,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     })
     return true
   }
+
 })
 
 chrome.runtime.onInstalled.addListener(() => {

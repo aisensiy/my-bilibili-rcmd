@@ -34,7 +34,13 @@ export interface BlockUpAction {
   timestamp: number
 }
 
-export type Action = PlayAction | DisinterestedAction | BlockUpAction
+export interface BlockTopicAction {
+  type: 'blockTopic'
+  phrase: string
+  timestamp: number
+}
+
+export type Action = PlayAction | DisinterestedAction | BlockUpAction | BlockTopicAction
 
 export interface UserProfile {
   interests: string[]
