@@ -180,10 +180,34 @@ ${JSON.stringify(blockedKeywords, null, 2)}
   }
 }
 
+// 串行化 blockedKeywords 的读-改-写：每次点「屏蔽」都会触发一次独立的异步抽词，
+// 多个并发的 block_topic 若各自在 LLM 调用前读到同一份旧 blockedKeywords，
+// 最后一个 storageSet 会覆盖掉前面的，导致关键词静默丢失。用一条 promise 链
+// 串起来，并在临界区内重新读取最新值。
+let blockedKeywordsMergeChain: Promise<void> = Promise.resolve()
+
+function mergeBlockedKeywords(keywords: string[]): Promise<void> {
+  const run = blockedKeywordsMergeChain.then(async () => {
+    const { blockedKeywords = [] } = await storageGet(['blockedKeywords'])
+    const existing = new Set((blockedKeywords as string[]).map(k => k.toLowerCase()))
+    const merged = [...(blockedKeywords as string[])]
+    for (const kw of keywords) {
+      if (!existing.has(kw.toLowerCase())) {
+        merged.push(kw)
+        existing.add(kw.toLowerCase())
+      }
+    }
+    await storageSet({ blockedKeywords: merged })
+  })
+  // 即便某次合并抛错，也不让后续合并被卡死。
+  blockedKeywordsMergeChain = run.catch(() => {})
+  return run
+}
+
 async function extractTopicKeywords(
   phrase: string,
 ): Promise<{ ok: true; keywords: string[] } | { ok: false; error: string }> {
-  const { settings, blockedKeywords = [] } = await storageGet(['settings', 'blockedKeywords'])
+  const { settings } = await storageGet(['settings'])
 
   if (!settings || !settings.providers || !settings.activeProvider) {
     return { ok: false, error: '未配置 AI 服务' }
@@ -238,15 +262,7 @@ async function extractTopicKeywords(
     return { ok: false, error: 'AI 没提取到关键词' }
   }
 
-  const existing = new Set((blockedKeywords as string[]).map(k => k.toLowerCase()))
-  const merged = [...(blockedKeywords as string[])]
-  for (const kw of keywords) {
-    if (!existing.has(kw.toLowerCase())) {
-      merged.push(kw)
-      existing.add(kw.toLowerCase())
-    }
-  }
-  await storageSet({ blockedKeywords: merged })
+  await mergeBlockedKeywords(keywords)
   console.log('[BiliFilter] 话题屏蔽：', phrase, '→', keywords)
   return { ok: true, keywords }
 }
