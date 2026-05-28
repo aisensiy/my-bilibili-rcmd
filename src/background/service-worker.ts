@@ -56,8 +56,8 @@ async function buildProfile(): Promise<void> {
     return
   }
 
-  const { actions = [], userProfile = DEFAULT_PROFILE, settings } = await storageGet([
-    'actions', 'userProfile', 'settings',
+  const { actions = [], userProfile = DEFAULT_PROFILE, blockedKeywords = [], settings } = await storageGet([
+    'actions', 'userProfile', 'blockedKeywords', 'settings',
   ])
 
   if (!settings || !settings.providers || !settings.activeProvider) {
@@ -90,6 +90,9 @@ ${JSON.stringify(recentActions, null, 2)}
 当前画像（参考，可修改）：
 ${JSON.stringify(userProfile, null, 2)}
 
+用户手动屏蔽的关键词（强负向信号，含主动屏蔽的热搜话题，请据此推断不感兴趣类型）：
+${JSON.stringify(blockedKeywords, null, 2)}
+
 请分析用户的内容偏好，返回以下 JSON 格式：
 {
   "interests": ["标签1", "标签2", ...],
@@ -100,7 +103,7 @@ ${JSON.stringify(userProfile, null, 2)}
 
 注意：
 - interests 是用户喜欢看的内容类型，从标题/行为推断（如"科技"、"编程"、"烹饪"等）
-- disinterests 是用户明确不感兴趣的类型（来自 disinterested 行为）
+- disinterests 是用户明确不感兴趣的类型（来自 disinterested 行为，以及上面"手动屏蔽的关键词"——把这些词归纳成具体的不感兴趣标签）
 - blockedUps 来自 blockUp 行为，直接取 upName
 - 标签要具体，方便后续关键词匹配（比如"军事"而不是"严肃内容"）`
 
@@ -177,6 +180,77 @@ ${JSON.stringify(userProfile, null, 2)}
   }
 }
 
+async function extractTopicKeywords(
+  phrase: string,
+): Promise<{ ok: true; keywords: string[] } | { ok: false; error: string }> {
+  const { settings, blockedKeywords = [] } = await storageGet(['settings', 'blockedKeywords'])
+
+  if (!settings || !settings.providers || !settings.activeProvider) {
+    return { ok: false, error: '未配置 AI 服务' }
+  }
+  const activeProvider = settings.activeProvider
+  const providerCfg = settings.providers[activeProvider]
+  if (!providerCfg?.apiKey) return { ok: false, error: `${activeProvider} 未填 API Key` }
+  if (!providerCfg?.model) return { ok: false, error: `${activeProvider} 未填模型` }
+  if (activeProvider === 'custom' && !providerCfg.baseUrl) {
+    return { ok: false, error: 'custom 未填 Base URL' }
+  }
+
+  const prompt = `你是内容过滤助手。用户在 Bilibili 热搜里看到「${phrase}」这个话题，想屏蔽掉所有相关视频。请从这个热搜短语里提取 2-4 个有区分度的关键词，用于匹配视频标题。
+
+只返回严格 JSON，不要任何多余文字：
+{"keywords": ["关键词1", "关键词2"]}
+
+要求：
+- 关键词要能代表这个话题的核心实体/事件，足够具体，能匹配到同话题但不同表述的视频标题
+- 避免过于宽泛的词（如"如何"、"评价"、"现状"、"视频"、"盘点"），那会误伤无关内容
+- 保留专有名词、人名、事件名、队伍/产品名等高区分度词
+- 关键词用中文，2-4 个`
+
+  const result = await callProvider({
+    provider: activeProvider,
+    apiKey: providerCfg.apiKey,
+    model: providerCfg.model,
+    baseUrl: providerCfg.baseUrl,
+    messages: [{ role: 'user', content: prompt }],
+    responseFormat: 'json_object',
+    temperature: 0.2,
+    reasoning: 'low',
+  })
+
+  if (!result.ok) {
+    return { ok: false, error: result.errorMessage ?? `HTTP ${result.errorStatus ?? '???'}` }
+  }
+
+  let parsed: any
+  try {
+    parsed = JSON.parse(result.content)
+  } catch {
+    return { ok: false, error: 'AI 返回的不是合法 JSON' }
+  }
+
+  const keywords: string[] = Array.isArray(parsed?.keywords)
+    ? parsed.keywords
+        .filter((k: unknown): k is string => typeof k === 'string' && k.trim().length > 0)
+        .map((k: string) => k.trim())
+    : []
+  if (keywords.length === 0) {
+    return { ok: false, error: 'AI 没提取到关键词' }
+  }
+
+  const existing = new Set((blockedKeywords as string[]).map(k => k.toLowerCase()))
+  const merged = [...(blockedKeywords as string[])]
+  for (const kw of keywords) {
+    if (!existing.has(kw.toLowerCase())) {
+      merged.push(kw)
+      existing.add(kw.toLowerCase())
+    }
+  }
+  await storageSet({ blockedKeywords: merged })
+  console.log('[BiliFilter] 话题屏蔽：', phrase, '→', keywords)
+  return { ok: true, keywords }
+}
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'analyze_profile') {
     // Fire-and-forget：popup 不需要等结果，进度通过 profile_progress 广播，
@@ -201,6 +275,18 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       sendResponse({ ok: true })
     })
     return true
+  }
+
+  if (message.type === 'block_topic') {
+    const phrase = typeof message.phrase === 'string' ? message.phrase.trim() : ''
+    if (!phrase) {
+      sendResponse({ ok: false, error: '空话题' })
+      return false
+    }
+    extractTopicKeywords(phrase)
+      .then(sendResponse)
+      .catch(err => sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) }))
+    return true // 异步 sendResponse
   }
 })
 
