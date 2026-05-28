@@ -70,9 +70,11 @@ async function loadFilterData(): Promise<void> {
     new Set<string>([...(userProfile.blockedUps ?? []), ...blockedUpsFromActions])
   )
 
-  const blockedTopicPhrases = (actions as any[])
-    .filter((a: any) => a.type === 'blockTopic' && a.phrase)
-    .map((a: any) => a.phrase as string)
+  const blockedTopicPhrases = Array.from(new Set(
+    (actions as any[])
+      .filter((a: any) => a.type === 'blockTopic' && a.phrase)
+      .map((a: any) => a.phrase as string)
+  ))
 
   filterData = {
     profile: {
@@ -148,9 +150,9 @@ const VIDEO_PAGE_CARD_SELECTOR = '.next-play .video-page-card-small, .rec-list .
 const TRENDING_CONTAINER_SELECTOR = '.bili-dyn-search-trendings'
 const TRENDING_ITEM_SELECTOR = 'a.trending'
 
-// 本次会话内被显式「屏蔽」过的热搜原句。即便 LLM 抽出的关键词不字面命中
-// 原句，也保证该条在 storage.onChanged 重渲染后不会闪回。reload 后清空，
-// 但常见情况下抽出的词会写入 blockedKeywords 并命中原句，跨刷新依然隐藏。
+// 本次会话内被显式「屏蔽」过的热搜原句，保证点击当下到 storage.onChanged 重渲染
+// 之间不会闪回。reload 后清空——跨刷新的持久隐藏由 filterData.blockedTopicPhrases
+// （从已记录的 blockTopic 行为派生）负责。
 const blockedTrendingPhrases = new Set<string>()
 const STYLE_ID = 'bf-ext-content-style'
 const CONTENT_STYLE = `
