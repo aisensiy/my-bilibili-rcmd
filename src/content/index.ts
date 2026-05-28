@@ -702,14 +702,28 @@ function buildTrendingButton(item: HTMLElement, phrase: string): HTMLButtonEleme
   btn.className = 'bf-ext-trending-btn'
   btn.textContent = '屏蔽'
   btn.title = `屏蔽话题「${phrase}」`
-  btn.addEventListener('click', (e) => {
+  btn.addEventListener('click', async (e) => {
     e.preventDefault()
     e.stopPropagation()
     if (!phrase) return
-    LOG('屏蔽话题（占位，未接 LLM）', { phrase })
+    LOG('屏蔽话题', { phrase })
+    // 即时隐藏 + 记入会话集合，避免等待 LLM 期间或重渲染后闪回
     blockedTrendingPhrases.add(phrase)
     item.classList.add('bf-ext-trending-hidden')
-    showToast(`已隐藏「${phrase}」`)
+    showToast(`正在分析「${phrase}」…`)
+    try {
+      const resp = await chrome.runtime.sendMessage({ type: 'block_topic', phrase })
+      if (resp?.ok && Array.isArray(resp.keywords) && resp.keywords.length > 0) {
+        showToast(`已屏蔽：${resp.keywords.join('、')}`)
+      } else if (resp?.ok) {
+        showToast('已隐藏该热搜')
+      } else {
+        showToast(resp?.error ? `屏蔽失败：${resp.error}` : '屏蔽失败')
+      }
+    } catch (err) {
+      LOG('屏蔽话题失败', err)
+      showToast('屏蔽失败，请重试')
+    }
   })
   return btn
 }
