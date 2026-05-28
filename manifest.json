@@ -32,7 +32,8 @@
     },
     {
       "matches": [
-        "https://www.bilibili.com/*"
+        "https://www.bilibili.com/*",
+        "https://t.bilibili.com/*"
       ],
       "js": [
         "src/content/index.ts"
