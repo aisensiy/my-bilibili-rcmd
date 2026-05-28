@@ -19,6 +19,7 @@ export type {
   PlayAction,
   DisinterestedAction,
   BlockUpAction,
+  BlockTopicAction,
   UserProfile,
   Stats,
   ProviderConfig,
