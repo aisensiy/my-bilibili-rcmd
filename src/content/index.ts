@@ -741,6 +741,7 @@ function resetTrendings(): void {
     .forEach(item => {
       delete item.dataset.bfTrendingDone
       item.classList.remove('bf-ext-trending-hidden')
+      item.classList.remove('bf-ext-trending')
       item.querySelector('.bf-ext-trending-btn')?.remove()
     })
   processTrendings()
