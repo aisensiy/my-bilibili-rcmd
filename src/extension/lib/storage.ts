@@ -137,7 +137,7 @@ export const storage = {
   async getStats(): Promise<Stats> {
     const actions = await this.getActions()
     const plays = actions.filter((a): a is PlayAction => a.type === 'play')
-    const blocked = actions.filter(a => a.type === 'disinterested' || a.type === 'blockUp')
+    const blocked = actions.filter(a => a.type === 'disinterested' || a.type === 'blockUp' || a.type === 'blockTopic')
     const avgWatchRatio = plays.length > 0
       ? plays.reduce((sum, p) => sum + p.watchRatio, 0) / plays.length
       : 0

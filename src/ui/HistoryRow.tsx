@@ -69,5 +69,16 @@ export default function HistoryRow({ action }: { action: Action }) {
     )
   }
 
+  if (action.type === 'blockTopic') {
+    return (
+      <div className="bg-gray-50 rounded-lg p-2.5 flex items-center gap-2">
+        <span className="text-[10px] bg-bili-pink text-white px-1.5 py-0.5 rounded-sm shrink-0">屏蔽话题</span>
+        <div className="flex-1 min-w-0">
+          <div className="text-xs text-gray-700 truncate">{action.phrase}</div>
+        </div>
+      </div>
+    )
+  }
+
   return null
 }
