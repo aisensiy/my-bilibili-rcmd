@@ -240,6 +240,9 @@ async function extractTopicKeywords(
     responseFormat: 'json_object',
     temperature: 0.2,
     reasoning: 'low',
+    // 与 buildProfile 走同一条已验证的流式路径：思考模型把答案放 content、
+    // 思考过程放 reasoning，readStream 会优先取 content，避免把思考文本当成 JSON 解析。
+    stream: true,
   })
 
   if (!result.ok) {
