@@ -72,6 +72,7 @@ jobs:
           CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
           REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+          PUBLISHER_ID: ${{ secrets.CWS_PUBLISHER_ID }}
         run: |
-          npx -y chrome-webstore-upload-cli@3 upload \
+          npx -y chrome-webstore-upload-cli@4 upload \
             --source my-bilibili-rcmd-${{ github.ref_name }}.zip
