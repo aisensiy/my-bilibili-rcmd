@@ -147,6 +147,8 @@ const BV_RE = /\/video\/(BV\w+)/
 const UID_RE = /space\.bilibili\.com\/(\d+)/
 const HOMEPAGE_CARD_SELECTOR = '.bili-video-card'
 const VIDEO_PAGE_CARD_SELECTOR = '.next-play .video-page-card-small, .rec-list .video-page-card-small'
+const POPULAR_CARD_SELECTOR = '.video-card'
+const RANK_CARD_SELECTOR = '.rank-item'
 const TRENDING_CONTAINER_SELECTOR = '.bili-dyn-search-trendings'
 const TRENDING_ITEM_SELECTOR = 'a.trending'
 
@@ -346,12 +348,54 @@ function parseSidebarCard(el: HTMLElement): CardInfo | null {
   }
 }
 
+function parsePopularCard(el: HTMLElement): CardInfo | null {
+  const linkEl = el.querySelector<HTMLAnchorElement>('a[href*="/video/"]')
+  const titleEl = el.querySelector<HTMLElement>('.video-name')
+  const nameEl = el.querySelector<HTMLElement>('.up-name')
+
+  if (!linkEl || !titleEl) return null
+
+  const bvidMatch = linkEl.getAttribute('href')?.match(BV_RE)
+
+  return {
+    bvid: bvidMatch?.[1] ?? '',
+    title: titleEl.textContent?.trim() ?? '',
+    upName: nameEl?.textContent?.trim() ?? '',
+    uid: '',                              // 热门 .video-card 无 UP space 链接
+    element: el,
+  }
+}
+
+function parseRankCard(el: HTMLElement): CardInfo | null {
+  const linkEl = el.querySelector<HTMLAnchorElement>('a[href*="/video/"]')
+  const titleEl = el.querySelector<HTMLElement>('.title')
+  const nameEl = el.querySelector<HTMLElement>('.up-name')
+  const upLinkEl = el.querySelector<HTMLAnchorElement>('a[href*="space.bilibili.com"]')
+
+  if (!linkEl || !titleEl) return null
+
+  const bvidMatch = linkEl.getAttribute('href')?.match(BV_RE)
+  const uidMatch = upLinkEl?.href?.match(UID_RE)
+
+  return {
+    bvid: bvidMatch?.[1] ?? '',
+    title: titleEl.textContent?.trim() ?? '',
+    upName: nameEl?.textContent?.trim() ?? '',
+    uid: uidMatch?.[1] ?? '',             // 排行榜卡片带 space 链接，可取 uid
+    element: el,
+  }
+}
+
 function isVideoPageCard(el: HTMLElement): boolean {
   return el.matches('.video-page-card-small') && !!el.closest('.next-play, .rec-list')
 }
 
 function isVideoPage(): boolean {
   return /^\/video\/BV\w+/.test(location.pathname)
+}
+
+function isPopularPage(): boolean {
+  return /^\/v\/popular(\/|$)/.test(location.pathname)
 }
 
 function ensureContentStyles(): void {
@@ -619,6 +663,16 @@ function injectHomepageButtons(info: CardInfo): void {
   wrap.appendChild(container)
 }
 
+function injectPopularButtons(info: CardInfo): void {
+  // 热门页卡片(.video-card / .rank-item)本身 position:relative，
+  // 直接挂 .bf-ext-actions（absolute bottom/right）即定位到卡片右下角，
+  // 与首页观感一致。无 portal；无原生反馈菜单 → triggerNativeFeedback 即时 no-op。
+  const container = document.createElement('div')
+  container.className = 'bf-ext-actions'
+  buildActionButtons(info, container)
+  info.element.appendChild(container)
+}
+
 // Bilibili's right-rail Vue 2 tree has a layout watcher that fires when any
 // visible positioned child is appended into a card's subtree. The reaction
 // later re-renders the slot containing #biliMainHeader, which destroys the
@@ -799,6 +853,33 @@ function processCard(el: HTMLElement, isHomepage: boolean): void {
 
   if (isHomepage) injectHomepageButtons(info)
   else injectSidebarButtons(info)
+}
+
+function processPopularCard(
+  el: HTMLElement,
+  parse: (el: HTMLElement) => CardInfo | null,
+): void {
+  if (el.dataset.bfDone) return
+  el.dataset.bfDone = '1'
+
+  const info = parse(el)
+  if (!info) return
+
+  // Store upname for bulk-hide on blockUp
+  if (info.upName) el.dataset.bfUpname = info.upName
+
+  const hideReason = shouldHide(info)
+  if (hideReason) {
+    LOG(`隐藏视频 [${hideReason}]`, `「${info.title}」- ${info.upName}`)
+    if (filterData.debugMode) {
+      injectDebugOverlay(el, hideReason)
+    } else {
+      el.classList.add('bf-ext-hidden-card')
+      return
+    }
+  }
+
+  injectPopularButtons(info)
 }
 
 function processAllCards(): void {
