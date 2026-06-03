@@ -170,7 +170,9 @@ const CONTENT_STYLE = `
   z-index: 999;
   pointer-events: none;
 }
-.bili-video-card:hover .bf-ext-actions {
+.bili-video-card:hover .bf-ext-actions,
+.video-card:hover .bf-ext-actions,
+.rank-item:hover .bf-ext-actions {
   opacity: 1;
   pointer-events: all;
 }
@@ -885,6 +887,10 @@ function processPopularCard(
 function processAllCards(): void {
   document.querySelectorAll<HTMLElement>(HOMEPAGE_CARD_SELECTOR).forEach(el => processCard(el, true))
   document.querySelectorAll<HTMLElement>(VIDEO_PAGE_CARD_SELECTOR).forEach(el => processCard(el, false))
+  if (isPopularPage()) {
+    document.querySelectorAll<HTMLElement>(POPULAR_CARD_SELECTOR).forEach(el => processPopularCard(el, parsePopularCard))
+    document.querySelectorAll<HTMLElement>(RANK_CARD_SELECTOR).forEach(el => processPopularCard(el, parseRankCard))
+  }
 }
 
 function resetAllCards(): void {
@@ -1038,16 +1044,23 @@ function startObserver(): void {
   observer = new MutationObserver(mutations => {
     let needsScan = false
     let portalDirty = false
+    // .rank-item(排行榜)与 .video-card(其它热门子页)是互斥路由，且仅在热门页扫描；
+    // 每次回调求值一次 isPopularPage()，避免在 addedNodes 热循环里重复跑正则。
+    const onPopularPage = isPopularPage()
     for (const m of mutations) {
       for (const node of m.addedNodes) {
         if (node.nodeType !== Node.ELEMENT_NODE) continue
         const el = node as HTMLElement
         if (el.matches(HOMEPAGE_CARD_SELECTOR) || isVideoPageCard(el)) {
           processCard(el, el.matches(HOMEPAGE_CARD_SELECTOR))
-        } else {
-          if (el.querySelector(HOMEPAGE_CARD_SELECTOR) || el.querySelector(VIDEO_PAGE_CARD_SELECTOR)) {
-            needsScan = true
-          }
+        } else if (onPopularPage && el.matches(RANK_CARD_SELECTOR)) {
+          processPopularCard(el, parseRankCard)
+        } else if (onPopularPage && el.matches(POPULAR_CARD_SELECTOR)) {
+          processPopularCard(el, parsePopularCard)
+        } else if (el.querySelector(HOMEPAGE_CARD_SELECTOR) || el.querySelector(VIDEO_PAGE_CARD_SELECTOR)) {
+          needsScan = true
+        } else if (onPopularPage && (el.querySelector(POPULAR_CARD_SELECTOR) || el.querySelector(RANK_CARD_SELECTOR))) {
+          needsScan = true
         }
       }
       if (!portalDirty && m.removedNodes.length > 0) portalDirty = true
