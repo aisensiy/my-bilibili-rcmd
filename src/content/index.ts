@@ -928,6 +928,7 @@ function setupWatchTracker(): void {
   LOG('观看追踪：已启动', { bvid: bvidFromUrl })
 
   let watchedSeconds = 0
+  let lastPersistedSeconds = -1
   let finalized = false
   let lastCurrentTime = 0
   let activeVideo: HTMLVideoElement | null = null
@@ -975,6 +976,13 @@ function setupWatchTracker(): void {
     const payload = buildPayload()
     if (!payload) return
     if (final) finalized = true
+
+    // Change-gate: the timer fires unconditionally, so a paused/finished video
+    // would otherwise re-write the same record every tick. Skip when the watched
+    // seconds haven't advanced since the last save (seeks don't advance them).
+    if (payload.watchedSeconds === lastPersistedSeconds) return
+    lastPersistedSeconds = payload.watchedSeconds
+
     LOG(final ? '观看记录：最终保存' : '观看记录：进度更新', {
       bvid: payload.bvid,
       title: payload.title,
@@ -1025,7 +1033,10 @@ function setupWatchTracker(): void {
   document.addEventListener('visibilitychange', onVisibilityChange, true)
   window.addEventListener('pagehide', onPageHide)
   window.addEventListener('beforeunload', onBeforeUnload)
-  persistTimer = window.setInterval(() => persist(), 15000)
+  // Periodic save is the *reliable* one — the pagehide/beforeunload handlers
+  // fire too late for the async chrome.storage write to land, so a short watch
+  // only gets recorded if a tick saved it before you left. Keep it tight.
+  persistTimer = window.setInterval(() => persist(), 5000)
 
   activeRecord = () => persist(true)
   trackerCleanup = () => {
