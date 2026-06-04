@@ -14,6 +14,7 @@ import HotSearchBlock from './scenes/hot-search-block'
 import MultiProvider from './scenes/multi-provider'
 import PromoTile from './scenes/promo-tile'
 import MarqueeBanner from './scenes/marquee-banner'
+import PopularCoverage from './scenes/popular-coverage'
 import '../extension/index.css'
 
 interface SceneSpec {
@@ -32,6 +33,11 @@ const SCENES: Record<string, SceneSpec> = {
     component: FilterRecommendations,
     name: 'Filter Recommendations',
     description: '过滤推荐流：按 AI 兴趣画像 + 关键词自动屏蔽，加 hover 主动操作',
+  },
+  'popular-coverage': {
+    component: PopularCoverage,
+    name: 'Popular Coverage',
+    description: '覆盖热门页：首页的过滤与「不感兴趣 / 不看TA」现在也作用于 /v/popular/all',
   },
   'keywords-blocking': {
     component: KeywordsBlocking,

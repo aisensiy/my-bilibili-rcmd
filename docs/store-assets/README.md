@@ -37,6 +37,7 @@ Chrome Web Store 用的截图（1280×800）。
 |---|---|---|---|
 | `history-insights` | `scenes/history-insights.tsx` | `screenshot-history-insights.png` | 观看历史留痕与完播统计 |
 | `filter-recommendations` | `scenes/filter-recommendations.tsx` | `screenshot-filter-recommendations.png` | 屏蔽不想看的推荐内容（兴趣画像驱动） |
+| `popular-coverage` | `scenes/popular-coverage.tsx` | `screenshot-popular-coverage.png` | 覆盖热门页：过滤与不感兴趣/不看TA 作用于 /v/popular/all |
 
 ## 规则
 
