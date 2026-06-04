@@ -12,7 +12,7 @@ export interface VideoCardData {
   timeAgo: string    // e.g. '3 小时前'
 }
 
-const COVER_GRADIENTS: Record<CoverKind, string> = {
+export const COVER_GRADIENTS: Record<CoverKind, string> = {
   'blue-tech':    'linear-gradient(135deg, #4d7dff 0%, #15bef0 100%)',
   'warm-sunset':  'linear-gradient(135deg, #ff917a 0%, #ff4f86 100%)',
   'gray-tech':    'linear-gradient(135deg, #dfe4ec 0%, #cfd5df 100%)',
