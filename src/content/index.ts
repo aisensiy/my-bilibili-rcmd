@@ -147,6 +147,8 @@ const BV_RE = /\/video\/(BV\w+)/
 const UID_RE = /space\.bilibili\.com\/(\d+)/
 const HOMEPAGE_CARD_SELECTOR = '.bili-video-card'
 const VIDEO_PAGE_CARD_SELECTOR = '.next-play .video-page-card-small, .rec-list .video-page-card-small'
+const POPULAR_CARD_SELECTOR = '.video-card'
+const RANK_CARD_SELECTOR = '.rank-item'
 const TRENDING_CONTAINER_SELECTOR = '.bili-dyn-search-trendings'
 const TRENDING_ITEM_SELECTOR = 'a.trending'
 
@@ -168,7 +170,9 @@ const CONTENT_STYLE = `
   z-index: 999;
   pointer-events: none;
 }
-.bili-video-card:hover .bf-ext-actions {
+.bili-video-card:hover .bf-ext-actions,
+.video-card:hover .bf-ext-actions,
+.rank-item:hover .bf-ext-actions {
   opacity: 1;
   pointer-events: all;
 }
@@ -346,12 +350,54 @@ function parseSidebarCard(el: HTMLElement): CardInfo | null {
   }
 }
 
+function parsePopularCard(el: HTMLElement): CardInfo | null {
+  const linkEl = el.querySelector<HTMLAnchorElement>('a[href*="/video/"]')
+  const titleEl = el.querySelector<HTMLElement>('.video-name')
+  const nameEl = el.querySelector<HTMLElement>('.up-name')
+
+  if (!linkEl || !titleEl) return null
+
+  const bvidMatch = linkEl.getAttribute('href')?.match(BV_RE)
+
+  return {
+    bvid: bvidMatch?.[1] ?? '',
+    title: titleEl.textContent?.trim() ?? '',
+    upName: nameEl?.textContent?.trim() ?? '',
+    uid: '',                              // 热门 .video-card 无 UP space 链接
+    element: el,
+  }
+}
+
+function parseRankCard(el: HTMLElement): CardInfo | null {
+  const linkEl = el.querySelector<HTMLAnchorElement>('a[href*="/video/"]')
+  const titleEl = el.querySelector<HTMLElement>('.title')
+  const nameEl = el.querySelector<HTMLElement>('.up-name')
+  const upLinkEl = el.querySelector<HTMLAnchorElement>('a[href*="space.bilibili.com"]')
+
+  if (!linkEl || !titleEl) return null
+
+  const bvidMatch = linkEl.getAttribute('href')?.match(BV_RE)
+  const uidMatch = upLinkEl?.href?.match(UID_RE)
+
+  return {
+    bvid: bvidMatch?.[1] ?? '',
+    title: titleEl.textContent?.trim() ?? '',
+    upName: nameEl?.textContent?.trim() ?? '',
+    uid: uidMatch?.[1] ?? '',             // 排行榜卡片带 space 链接，可取 uid
+    element: el,
+  }
+}
+
 function isVideoPageCard(el: HTMLElement): boolean {
   return el.matches('.video-page-card-small') && !!el.closest('.next-play, .rec-list')
 }
 
 function isVideoPage(): boolean {
   return /^\/video\/BV\w+/.test(location.pathname)
+}
+
+function isPopularPage(): boolean {
+  return /^\/v\/popular(\/|$)/.test(location.pathname)
 }
 
 function ensureContentStyles(): void {
@@ -555,59 +601,62 @@ function ensurePortal(): HTMLElement {
   return portal
 }
 
-function buildActionButtons(info: CardInfo, container: HTMLElement): void {
-  const disBtn = document.createElement('button')
-  disBtn.className = 'bf-ext-btn bf-ext-btn--disinterest'
-  disBtn.textContent = '不感兴趣'
-  disBtn.title = '对这个内容不感兴趣'
-  disBtn.addEventListener('click', async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (!info.bvid) return
-    LOG(`反馈：不感兴趣`, { bvid: info.bvid, title: info.title, upName: info.upName })
-    await triggerNativeFeedback(info.element, '内容不感兴趣')
-    await saveAction({
-      type: 'disinterested',
-      bvid: info.bvid,
-      title: info.title,
-      upName: info.upName,
-      timestamp: Date.now(),
+function buildActionButtons(info: CardInfo, container: HTMLElement): boolean {
+  if (info.bvid) {
+    const disBtn = document.createElement('button')
+    disBtn.className = 'bf-ext-btn bf-ext-btn--disinterest'
+    disBtn.textContent = '不感兴趣'
+    disBtn.title = '对这个内容不感兴趣'
+    disBtn.addEventListener('click', async (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      LOG(`反馈：不感兴趣`, { bvid: info.bvid, title: info.title, upName: info.upName })
+      await triggerNativeFeedback(info.element, '内容不感兴趣')
+      await saveAction({
+        type: 'disinterested',
+        bvid: info.bvid,
+        title: info.title,
+        upName: info.upName,
+        timestamp: Date.now(),
+      })
+      info.element.classList.add('bf-ext-hidden-card')
+      removePortalEntry(info.element)
     })
-    info.element.classList.add('bf-ext-hidden-card')
-    removePortalEntry(info.element)
-  })
+    container.appendChild(disBtn)
+  }
 
-  const upBtn = document.createElement('button')
-  upBtn.className = 'bf-ext-btn bf-ext-btn--blockup'
-  upBtn.textContent = '不看TA'
-  upBtn.title = `屏蔽 ${info.upName} 的所有视频`
-  upBtn.addEventListener('click', async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (!info.upName) return
-    LOG(`反馈：屏蔽UP主「${info.upName}」`, { uid: info.uid })
-    await triggerNativeFeedback(info.element, '不想看此UP主')
-    await saveAction({
-      type: 'blockUp',
-      upName: info.upName,
-      uid: info.uid,
-      timestamp: Date.now(),
+  if (info.upName) {
+    const upBtn = document.createElement('button')
+    upBtn.className = 'bf-ext-btn bf-ext-btn--blockup'
+    upBtn.textContent = '不看TA'
+    upBtn.title = `屏蔽 ${info.upName} 的所有视频`
+    upBtn.addEventListener('click', async (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      LOG(`反馈：屏蔽UP主「${info.upName}」`, { uid: info.uid })
+      await triggerNativeFeedback(info.element, '不想看此UP主')
+      await saveAction({
+        type: 'blockUp',
+        upName: info.upName,
+        uid: info.uid,
+        timestamp: Date.now(),
+      })
+      let hiddenCount = 0
+      document.querySelectorAll<HTMLElement>('[data-bf-upname]').forEach(el => {
+        if (el.dataset.bfUpname === info.upName) {
+          el.classList.add('bf-ext-hidden-card')
+          removePortalEntry(el)
+          hiddenCount++
+        }
+      })
+      LOG(`已隐藏「${info.upName}」的 ${hiddenCount} 个卡片`)
+      info.element.classList.add('bf-ext-hidden-card')
+      removePortalEntry(info.element)
     })
-    let hiddenCount = 0
-    document.querySelectorAll<HTMLElement>('[data-bf-upname]').forEach(el => {
-      if (el.dataset.bfUpname === info.upName) {
-        el.classList.add('bf-ext-hidden-card')
-        removePortalEntry(el)
-        hiddenCount++
-      }
-    })
-    LOG(`已隐藏「${info.upName}」的 ${hiddenCount} 个卡片`)
-    info.element.classList.add('bf-ext-hidden-card')
-    removePortalEntry(info.element)
-  })
+    container.appendChild(upBtn)
+  }
 
-  container.appendChild(disBtn)
-  container.appendChild(upBtn)
+  return container.childElementCount > 0
 }
 
 function injectHomepageButtons(info: CardInfo): void {
@@ -615,8 +664,18 @@ function injectHomepageButtons(info: CardInfo): void {
   if (!wrap) return
   const container = document.createElement('div')
   container.className = 'bf-ext-actions'
-  buildActionButtons(info, container)
+  if (!buildActionButtons(info, container)) return
   wrap.appendChild(container)
+}
+
+function injectPopularButtons(info: CardInfo): void {
+  // 热门页卡片(.video-card / .rank-item)本身 position:relative，
+  // 直接挂 .bf-ext-actions（absolute bottom/right）即定位到卡片右下角，
+  // 与首页观感一致。无 portal；无原生反馈菜单 → triggerNativeFeedback 即时 no-op。
+  const container = document.createElement('div')
+  container.className = 'bf-ext-actions'
+  if (!buildActionButtons(info, container)) return
+  info.element.appendChild(container)
 }
 
 // Bilibili's right-rail Vue 2 tree has a layout watcher that fires when any
@@ -628,7 +687,7 @@ function injectSidebarButtons(info: CardInfo): void {
   const portal = ensurePortal()
   const container = document.createElement('div')
   container.className = 'bf-ext-actions-portal'
-  buildActionButtons(info, container)
+  if (!buildActionButtons(info, container)) return
   portal.appendChild(container)
 
   // Event listeners on the card don't mutate the DOM, so they don't trip the
@@ -801,9 +860,40 @@ function processCard(el: HTMLElement, isHomepage: boolean): void {
   else injectSidebarButtons(info)
 }
 
+function processPopularCard(
+  el: HTMLElement,
+  parse: (el: HTMLElement) => CardInfo | null,
+): void {
+  if (el.dataset.bfDone) return
+  el.dataset.bfDone = '1'
+
+  const info = parse(el)
+  if (!info) return
+
+  // Store upname for bulk-hide on blockUp
+  if (info.upName) el.dataset.bfUpname = info.upName
+
+  const hideReason = shouldHide(info)
+  if (hideReason) {
+    LOG(`隐藏视频 [${hideReason}]`, `「${info.title}」- ${info.upName}`)
+    if (filterData.debugMode) {
+      injectDebugOverlay(el, hideReason)
+    } else {
+      el.classList.add('bf-ext-hidden-card')
+      return
+    }
+  }
+
+  injectPopularButtons(info)
+}
+
 function processAllCards(): void {
   document.querySelectorAll<HTMLElement>(HOMEPAGE_CARD_SELECTOR).forEach(el => processCard(el, true))
   document.querySelectorAll<HTMLElement>(VIDEO_PAGE_CARD_SELECTOR).forEach(el => processCard(el, false))
+  if (isPopularPage()) {
+    document.querySelectorAll<HTMLElement>(POPULAR_CARD_SELECTOR).forEach(el => processPopularCard(el, parsePopularCard))
+    document.querySelectorAll<HTMLElement>(RANK_CARD_SELECTOR).forEach(el => processPopularCard(el, parseRankCard))
+  }
 }
 
 function resetAllCards(): void {
@@ -957,16 +1047,23 @@ function startObserver(): void {
   observer = new MutationObserver(mutations => {
     let needsScan = false
     let portalDirty = false
+    // .rank-item(排行榜)与 .video-card(其它热门子页)是互斥路由，且仅在热门页扫描；
+    // 每次回调求值一次 isPopularPage()，避免在 addedNodes 热循环里重复跑正则。
+    const onPopularPage = isPopularPage()
     for (const m of mutations) {
       for (const node of m.addedNodes) {
         if (node.nodeType !== Node.ELEMENT_NODE) continue
         const el = node as HTMLElement
         if (el.matches(HOMEPAGE_CARD_SELECTOR) || isVideoPageCard(el)) {
           processCard(el, el.matches(HOMEPAGE_CARD_SELECTOR))
-        } else {
-          if (el.querySelector(HOMEPAGE_CARD_SELECTOR) || el.querySelector(VIDEO_PAGE_CARD_SELECTOR)) {
-            needsScan = true
-          }
+        } else if (onPopularPage && el.matches(RANK_CARD_SELECTOR)) {
+          processPopularCard(el, parseRankCard)
+        } else if (onPopularPage && el.matches(POPULAR_CARD_SELECTOR)) {
+          processPopularCard(el, parsePopularCard)
+        } else if (el.querySelector(HOMEPAGE_CARD_SELECTOR) || el.querySelector(VIDEO_PAGE_CARD_SELECTOR)) {
+          needsScan = true
+        } else if (onPopularPage && (el.querySelector(POPULAR_CARD_SELECTOR) || el.querySelector(RANK_CARD_SELECTOR))) {
+          needsScan = true
         }
       }
       if (!portalDirty && m.removedNodes.length > 0) portalDirty = true
