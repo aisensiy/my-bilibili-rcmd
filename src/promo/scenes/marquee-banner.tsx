@@ -32,7 +32,7 @@ export default function MarqueeBannerScene() {
 
       {/* Hero block left-center */}
       <section style={{ position: 'absolute', left: 60, top: 140, zIndex: 3 }}>
-        <h1 style={{ width: 760, fontSize: 64, lineHeight: 1.15, fontWeight: 400, color: '#171b26' }}>
+        <h1 style={{ width: 760, fontSize: 64, lineHeight: 1.15, fontWeight: 500, color: '#171b26' }}>
           你的 B 站，<span style={{ color: '#ff4f86' }}>由你做主</span>
         </h1>
         <p style={{ marginTop: 18, width: 760, fontSize: 22, lineHeight: 1.45, fontWeight: 500, color: '#5e6677' }}>

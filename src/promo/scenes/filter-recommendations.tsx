@@ -89,7 +89,7 @@ export default function FilterRecommendationsScene() {
 
       {/* Hero 文案 */}
       <section style={{ position: 'absolute', left: 79, top: 155, zIndex: 3 }}>
-        <h1 style={{ width: 690, fontSize: 56, lineHeight: 1.18, fontWeight: 400, color: '#171b26' }}>
+        <h1 style={{ width: 690, fontSize: 56, lineHeight: 1.18, fontWeight: 500, color: '#171b26' }}>
           屏蔽不想看的<span style={{ color: '#ff4f86' }}>推荐内容</span>
         </h1>
         <p style={{ marginTop: 16, fontSize: 20, lineHeight: 1.4, fontWeight: 500, color: '#5e6677' }}>
