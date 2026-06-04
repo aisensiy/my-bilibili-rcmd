@@ -16,13 +16,13 @@ export default function PopularHoverActions({ children }: { children: ReactNode 
         <button style={{
           padding: '5px 10px', borderRadius: 6,
           background: '#1b1d24', color: '#ffffff',
-          fontSize: 11, fontWeight: 700, border: 'none',
+          fontSize: 11, fontWeight: 600, border: 'none',
           boxShadow: '0 4px 10px rgba(0,0,0,0.25)', whiteSpace: 'nowrap',
         }}>不感兴趣</button>
         <button style={{
           padding: '5px 10px', borderRadius: 6,
           background: 'linear-gradient(135deg, #fb7299 0%, #ff4f86 100%)',
-          color: '#ffffff', fontSize: 11, fontWeight: 700, border: 'none',
+          color: '#ffffff', fontSize: 11, fontWeight: 600, border: 'none',
           boxShadow: '0 4px 10px rgba(251, 79, 134, 0.35)', whiteSpace: 'nowrap',
         }}>不看TA</button>
       </div>

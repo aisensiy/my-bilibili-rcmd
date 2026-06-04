@@ -26,7 +26,7 @@ export default function PopularPage({ children }: { children: ReactNode }) {
                 background: t.dot, opacity: t.active ? 1 : 0.9,
               }} />
               <span style={{
-                fontSize: 15, fontWeight: t.active ? 800 : 600,
+                fontSize: 15, fontWeight: t.active ? 700 : 500,
                 color: t.active ? '#18191c' : '#61666d',
               }}>{t.label}</span>
             </div>

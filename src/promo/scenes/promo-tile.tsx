@@ -24,11 +24,11 @@ export default function PromoTileScene() {
           background: 'linear-gradient(135deg, #fb7299 0%, #ff4f86 100%)',
           color: 'white',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 44, fontWeight: 900,
+          fontSize: 44, fontWeight: 800,
           boxShadow: '0 12px 24px rgba(251, 79, 134, 0.32)',
         }}>B</div>
         <div>
-          <div style={{ fontSize: 26, lineHeight: 1.1, fontWeight: 800, color: '#171b26' }}>
+          <div style={{ fontSize: 26, lineHeight: 1.1, fontWeight: 700, color: '#171b26' }}>
             我的 Bilibili 推荐
           </div>
           <div style={{ marginTop: 7, fontSize: 15, lineHeight: 1.1, color: '#748094' }}>
@@ -41,7 +41,7 @@ export default function PromoTileScene() {
       <div style={{
         position: 'absolute',
         left: 32, right: 32, bottom: 36,
-        fontSize: 28, fontWeight: 900, lineHeight: 1.2,
+        fontSize: 28, fontWeight: 800, lineHeight: 1.2,
         color: '#171b26',
         zIndex: 4,
       }}>

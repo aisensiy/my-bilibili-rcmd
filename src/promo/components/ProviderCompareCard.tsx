@@ -34,7 +34,7 @@ export default function ProviderCompareCard({
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{
           fontSize: 20,
-          fontWeight: 800,
+          fontWeight: 700,
           color: active ? '#ff4f86' : '#171b26',
           lineHeight: 1.1,
         }}>{name}</div>
@@ -44,12 +44,12 @@ export default function ProviderCompareCard({
           background: badgeColor,
           color: '#ffffff',
           fontSize: 11,
-          fontWeight: 700,
+          fontWeight: 600,
         }}>{badge}</div>
       </div>
       <div style={{
         fontSize: 14,
-        fontWeight: 700,
+        fontWeight: 600,
         color: '#374151',
         lineHeight: 1.3,
       }}>{blurb}</div>

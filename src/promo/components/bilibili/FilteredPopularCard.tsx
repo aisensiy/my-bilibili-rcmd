@@ -22,7 +22,7 @@ export default function FilteredPopularCard({ data, reason }: FilteredPopularCar
         transform: 'translate(-50%, -50%)',
         padding: '5px 12px', borderRadius: 6,
         background: 'rgba(17, 24, 39, 0.85)', color: '#ffffff',
-        fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', zIndex: 2,
+        fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', zIndex: 2,
       }}>
         命中：{reason}
       </div>

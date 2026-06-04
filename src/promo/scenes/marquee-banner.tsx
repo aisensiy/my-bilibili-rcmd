@@ -22,20 +22,20 @@ export default function MarqueeBannerScene() {
           background: 'linear-gradient(135deg, #fb7299 0%, #ff4f86 100%)',
           color: 'white',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 22, fontWeight: 900,
+          fontSize: 22, fontWeight: 800,
           boxShadow: '0 8px 18px rgba(251, 79, 134, 0.28)',
         }}>B</div>
-        <div style={{ fontSize: 18, fontWeight: 800, color: '#171b26' }}>
+        <div style={{ fontSize: 18, fontWeight: 700, color: '#171b26' }}>
           我的 Bilibili 推荐 · Chrome 扩展
         </div>
       </div>
 
       {/* Hero block left-center */}
       <section style={{ position: 'absolute', left: 60, top: 140, zIndex: 3 }}>
-        <h1 style={{ width: 760, fontSize: 64, lineHeight: 1.15, fontWeight: 900, color: '#171b26' }}>
+        <h1 style={{ width: 760, fontSize: 64, lineHeight: 1.15, fontWeight: 400, color: '#171b26' }}>
           你的 B 站，<span style={{ color: '#ff4f86' }}>由你做主</span>
         </h1>
-        <p style={{ marginTop: 18, width: 760, fontSize: 22, lineHeight: 1.45, fontWeight: 600, color: '#5e6677' }}>
+        <p style={{ marginTop: 18, width: 760, fontSize: 22, lineHeight: 1.45, fontWeight: 500, color: '#5e6677' }}>
           关键词屏蔽、AI 兴趣画像、本地观看历史 —— 三道手段全部本地生效，自带 Key
         </p>
         <div style={{ marginTop: 28, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
@@ -47,7 +47,7 @@ export default function MarqueeBannerScene() {
             <div key={label} style={{
               height: 44, padding: '0 22px', borderRadius: 999,
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              color: 'white', fontSize: 18, fontWeight: 800, lineHeight: 1,
+              color: 'white', fontSize: 18, fontWeight: 700, lineHeight: 1,
               background: dark
                 ? '#1b1d24'
                 : 'linear-gradient(135deg, #fb7299 0%, #ff4f86 100%)',

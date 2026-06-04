@@ -14,7 +14,9 @@
     body {
       color: #171b26;
       background: #ffffff;
-      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+      /* Authoritative stack lives in fonts.css (loaded via main.tsx); this
+         keeps the pre-hydration paint consistent. */
+      font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
       -webkit-font-smoothing: antialiased;
       text-rendering: optimizeLegibility;
     }

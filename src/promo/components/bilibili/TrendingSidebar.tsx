@@ -29,7 +29,7 @@ export default function TrendingSidebar() {
       padding: '16px 16px 18px',
       boxShadow: '0 8px 22px rgba(24, 30, 42, 0.08)',
     }}>
-      <div style={{ fontSize: 16, fontWeight: 800, color: '#18191c', marginBottom: 12 }}>
+      <div style={{ fontSize: 16, fontWeight: 700, color: '#18191c', marginBottom: 12 }}>
         bilibili热搜
       </div>
 
@@ -50,7 +50,7 @@ export default function TrendingSidebar() {
               flexShrink: 0,
               textAlign: 'center',
               fontSize: 14,
-              fontWeight: 800,
+              fontWeight: 700,
               color: i < 3 ? RANK_COLORS[i] : '#9499a0',
             }}>{i + 1}</span>
             <span style={{
@@ -71,7 +71,7 @@ export default function TrendingSidebar() {
                 background: 'linear-gradient(135deg, #fb7299 0%, #ff4f86 100%)',
                 color: '#ffffff',
                 fontSize: 12,
-                fontWeight: 700,
+                fontWeight: 600,
                 lineHeight: 1.3,
                 boxShadow: '0 4px 10px rgba(251, 79, 134, 0.32)',
               }}>屏蔽</button>
@@ -90,7 +90,7 @@ export default function TrendingSidebar() {
         background: 'rgba(27, 29, 36, 0.92)',
         color: '#ffffff',
         fontSize: 12.5,
-        fontWeight: 600,
+        fontWeight: 500,
         padding: '8px 14px',
         borderRadius: 8,
         boxShadow: '0 10px 22px rgba(24, 30, 42, 0.24)',

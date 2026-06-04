@@ -33,7 +33,7 @@ export default function PopularCard({ data }: { data: PopularCardData }) {
         <div style={{
           position: 'absolute', left: 7, right: 7, bottom: 6, zIndex: 2,
           display: 'flex', justifyContent: 'flex-end',
-          color: 'white', fontSize: 11, fontWeight: 700,
+          color: 'white', fontSize: 11, fontWeight: 600,
         }}>
           <span>{data.duration}</span>
         </div>
@@ -41,7 +41,7 @@ export default function PopularCard({ data }: { data: PopularCardData }) {
       {/* right column */}
       <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
         <div style={{
-          fontSize: 14, lineHeight: 1.3, fontWeight: 800, color: '#18191c',
+          fontSize: 14, lineHeight: 1.3, fontWeight: 700, color: '#18191c',
           display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
           overflow: 'hidden',
         }}>{data.title}</div>
@@ -50,7 +50,7 @@ export default function PopularCard({ data }: { data: PopularCardData }) {
             display: 'inline-block',
             padding: '2px 7px', borderRadius: 4,
             background: '#fff1e8', color: '#ff7f24',
-            fontSize: 11, fontWeight: 700,
+            fontSize: 11, fontWeight: 600,
           }}>{data.reason}</span>
         </div>
         <div style={{
@@ -58,7 +58,7 @@ export default function PopularCard({ data }: { data: PopularCardData }) {
           display: 'flex', alignItems: 'center', gap: 6, minWidth: 0,
         }}>
           <span style={{
-            fontSize: 9, fontWeight: 800, color: '#fff', background: '#9499a0',
+            fontSize: 9, fontWeight: 700, color: '#fff', background: '#9499a0',
             borderRadius: 3, padding: '1px 3px', flexShrink: 0,
           }}>UP</span>
           <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{data.upName}</span>

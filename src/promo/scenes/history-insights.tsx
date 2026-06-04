@@ -38,11 +38,11 @@ export default function HistoryInsightsScene() {
             background: 'linear-gradient(135deg, #fb7299 0%, #ff4f86 100%)',
             color: 'white',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 25, fontWeight: 900,
+            fontSize: 25, fontWeight: 800,
             boxShadow: '0 10px 24px rgba(251, 79, 134, 0.28)',
           }}>B</div>
           <div>
-            <div style={{ fontSize: 27, lineHeight: 1.05, fontWeight: 800, color: '#171b26' }}>
+            <div style={{ fontSize: 27, lineHeight: 1.05, fontWeight: 700, color: '#171b26' }}>
               我的 Bilibili 推荐
             </div>
             <div style={{ marginTop: 8, fontSize: 18, lineHeight: 1.1, color: '#748094' }}>
@@ -55,7 +55,7 @@ export default function HistoryInsightsScene() {
           height: 46, padding: '0 18px 0 14px',
           borderRadius: 999,
           background: 'linear-gradient(135deg, #09a9e7 0%, #0b93d7 100%)',
-          color: '#ffffff', fontSize: 17, fontWeight: 800,
+          color: '#ffffff', fontSize: 17, fontWeight: 400,
           boxShadow: '0 15px 28px rgba(0, 161, 214, 0.28)',
         }}>
           <svg width={28} height={28} viewBox="0 0 32 32" aria-hidden="true">
@@ -68,24 +68,24 @@ export default function HistoryInsightsScene() {
 
       {/* Hero 文案 */}
       <section style={{ position: 'absolute', left: 79, top: 155, zIndex: 3 }}>
-        <h1 style={{ width: 690, fontSize: 56, lineHeight: 1.18, fontWeight: 900, color: '#171b26' }}>
+        <h1 style={{ width: 690, fontSize: 56, lineHeight: 1.18, fontWeight: 400, color: '#171b26' }}>
           AI <span style={{ color: '#ff4f86' }}>越来越懂你</span>
         </h1>
-        <p style={{ marginTop: 16, fontSize: 20, lineHeight: 1.4, fontWeight: 600, color: '#5e6677' }}>
+        <p style={{ marginTop: 16, fontSize: 20, lineHeight: 1.4, fontWeight: 500, color: '#5e6677' }}>
           完播率、标题、UP 全部本地留下 —— AI 拿来生成越来越准的兴趣画像
         </p>
         <div style={{ marginTop: 22, display: 'flex', alignItems: 'center', gap: 18 }}>
           <div style={{
             height: 46, padding: '0 23px', borderRadius: 999,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            color: 'white', fontSize: 22, fontWeight: 800, lineHeight: 1,
+            color: 'white', fontSize: 22, fontWeight: 700, lineHeight: 1,
             background: '#1b1d24',
             boxShadow: '0 12px 22px rgba(23, 27, 38, 0.12)',
           }}>完播率</div>
           <div style={{
             height: 46, padding: '0 23px', borderRadius: 999,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            color: 'white', fontSize: 22, fontWeight: 800, lineHeight: 1,
+            color: 'white', fontSize: 22, fontWeight: 700, lineHeight: 1,
             background: 'linear-gradient(135deg, #fb7299 0%, #ff4f86 100%)',
             boxShadow: '0 12px 22px rgba(23, 27, 38, 0.12)',
           }}>画像更准</div>

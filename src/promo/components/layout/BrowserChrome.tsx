@@ -51,12 +51,12 @@ export default function BrowserChrome({ url, tabTitle, children, style }: Browse
           fontSize: 13,
           color: '#171b26',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}>
             <span style={{
               width: 20, height: 20, borderRadius: 5, color: 'white',
               background: '#fb7299',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 12, fontWeight: 900,
+              fontSize: 12, fontWeight: 800,
             }}>B</span>
             {tabTitle}
           </div>

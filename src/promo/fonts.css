@@ -1,0 +1,50 @@
+/*
+  Self-hosted open-source fonts for promo screenshots.
+
+  The store screenshots (docs/store-assets/*.png) bake glyphs into pixels. We
+  render with SIL OFL 1.1 fonts only, so the published images carry no
+  proprietary-font (Apple San Francisco / 苹方 / SF Mono) licensing question.
+  Regenerate the woff2 files with docs/store-assets/build-fonts.sh.
+
+  This file is imported AFTER extension/index.css in main.tsx so the `body`
+  rule below wins over that file's system-font stack. It is promo-only — the
+  shipped extension never loads it, so extension runtime fonts are unchanged.
+*/
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: block;
+  src: url('./fonts/Inter-variable.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Noto Sans SC';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: block;
+  src: url('./fonts/NotoSansSC-subset.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: block;
+  src: url('./fonts/JetBrainsMono-variable.woff2') format('woff2');
+}
+
+body {
+  font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont,
+    'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', sans-serif;
+
+  /*
+    Override Tailwind's --font-* tokens for the whole promo tree. Custom
+    properties inherit, so every `.font-mono` utility in the rendered ui/
+    components (Settings API-key inputs, Profile preview) resolves to
+    JetBrains Mono instead of the system SF Mono / Menlo.
+  */
+  --font-sans: 'Inter', 'Noto Sans SC', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}

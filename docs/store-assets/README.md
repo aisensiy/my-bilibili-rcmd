@@ -39,6 +39,19 @@ Chrome Web Store 用的截图（1280×800）。
 | `filter-recommendations` | `scenes/filter-recommendations.tsx` | `screenshot-filter-recommendations.png` | 屏蔽不想看的推荐内容（兴趣画像驱动） |
 | `popular-coverage` | `scenes/popular-coverage.tsx` | `screenshot-popular-coverage.png` | 覆盖热门页：过滤与不感兴趣/不看TA 作用于 /v/popular/all |
 
+## 字体（开源，规避法律风险）
+
+截图把字形烤进像素。为避免把苹果专有字体（San Francisco / 苹方 / SF Mono）的授权问题带进商店素材，promo **只用 SIL OFL 1.1 开源字体**渲染，self-host 在 `src/promo/fonts/`：
+
+| 用途 | 字体 | 许可 |
+|---|---|---|
+| 西文 / UI | Inter | OFL-1.1 |
+| 中文 | Noto Sans SC（按 `src/` 实际用到的字 subset） | OFL-1.1 |
+| 等宽 | JetBrains Mono（Settings/Profile 的 `font-mono`） | OFL-1.1 |
+
+- `@font-face` 与字体栈在 `src/promo/fonts.css`，由 `main.tsx` 在 `extension/index.css` **之后** import，确保覆盖系统字体栈;只作用于 promo，不影响扩展本体。
+- **改了文案、加了新的中文字** → 跑 `./build-fonts.sh` 重新 subset，再 `./render.sh <name>` 出图。脚本会自动从 `src/` 收集字符集、下载并裁剪字体、附 `OFL-*.txt` 许可证。
+
 ## 规则
 
 - 中文文案使用**全角标点**（`，。？；（）「」`）

@@ -23,7 +23,7 @@ export default function FilteredCard({ data, reason }: FilteredCardProps) {
         background: 'rgba(17, 24, 39, 0.85)',
         color: '#ffffff',
         fontSize: 12,
-        fontWeight: 800,
+        fontWeight: 700,
         whiteSpace: 'nowrap',
         zIndex: 2,
       }}>

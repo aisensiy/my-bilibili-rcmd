@@ -16,6 +16,9 @@ import PromoTile from './scenes/promo-tile'
 import MarqueeBanner from './scenes/marquee-banner'
 import PopularCoverage from './scenes/popular-coverage'
 import '../extension/index.css'
+// Imported AFTER index.css so its `body` font rule wins. Self-hosted OFL fonts
+// keep store screenshots free of proprietary fonts — see fonts.css.
+import './fonts.css'
 
 interface SceneSpec {
   component: () => JSX.Element
@@ -72,10 +75,10 @@ function SceneIndex({ unknown }: { unknown?: string }) {
       maxWidth: 720,
       margin: '60px auto',
       padding: 24,
-      fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif',
+      fontFamily: '"Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif',
       color: '#171b26',
     }}>
-      <h1 style={{ fontSize: 32, fontWeight: 900, marginBottom: 6 }}>Promo Scenes</h1>
+      <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 6 }}>Promo Scenes</h1>
       <p style={{ color: '#5f6878', fontSize: 14, lineHeight: 1.5, marginBottom: 28 }}>
         每张促销图是一个 React 场景，渲染目标 1280×800。点开任何一个，在 DevTools device toolbar
         里把视口缩到 1280×800 看效果；改 scene 文件或 fixtures 后会热更新。
@@ -119,7 +122,7 @@ function SceneIndex({ unknown }: { unknown?: string }) {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-              <div style={{ fontSize: 17, fontWeight: 800 }}>{spec.name}</div>
+              <div style={{ fontSize: 17, fontWeight: 700 }}>{spec.name}</div>
               <code style={{ fontFamily: 'monospace', fontSize: 12, color: '#9aa3b2' }}>?scene={id}</code>
             </div>
             <div style={{ marginTop: 6, color: '#5f6878', fontSize: 14, lineHeight: 1.45 }}>

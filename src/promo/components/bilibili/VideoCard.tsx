@@ -45,7 +45,7 @@ export default function VideoCard({ data }: { data: VideoCardData }) {
           justifyContent: 'space-between',
           color: 'white',
           fontSize: 12,
-          fontWeight: 700,
+          fontWeight: 600,
         }}>
           <span>▻ {data.plays}</span>
           <span>{data.duration}</span>
@@ -55,7 +55,7 @@ export default function VideoCard({ data }: { data: VideoCardData }) {
         marginTop: 11,
         fontSize: 14,
         lineHeight: 1.28,
-        fontWeight: 800,
+        fontWeight: 700,
         color: '#232936',
         whiteSpace: 'nowrap',
         overflow: 'hidden',
