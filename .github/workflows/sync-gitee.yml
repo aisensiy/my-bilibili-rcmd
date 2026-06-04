@@ -1,0 +1,22 @@
+name: sync-gitee
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - '**'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    name: Git Repo Sync
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: wangchucheng/git-repo-sync@v0.1.0
+        with:
+          target-url: https://gitee.com/aisensiy/my-bilibili-rcmd.git
+          target-username: aisensiy
+          target-token: ${{ secrets.GITEE_API_TOKEN }}
