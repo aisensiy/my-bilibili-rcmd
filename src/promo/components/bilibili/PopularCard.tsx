@@ -29,12 +29,12 @@ export default function PopularCard({ data }: { data: PopularCardData }) {
           position: 'absolute', inset: 0,
           background: 'linear-gradient(180deg, transparent 55%, rgba(17,24,39,0.45) 100%)',
         }} />
+        {/* thumbnail overlay shows duration only; play count lives in the stats row */}
         <div style={{
           position: 'absolute', left: 7, right: 7, bottom: 6, zIndex: 2,
-          display: 'flex', justifyContent: 'space-between',
+          display: 'flex', justifyContent: 'flex-end',
           color: 'white', fontSize: 11, fontWeight: 700,
         }}>
-          <span>▻ {data.plays}</span>
           <span>{data.duration}</span>
         </div>
       </div>

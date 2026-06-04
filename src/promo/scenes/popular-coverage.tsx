@@ -42,7 +42,7 @@ const NORMAL_CARD_2: PopularCardData = {
 // are real play actions from the fixture (indices chosen for varied titles that
 // fill the visible popup rows — reselect by intent if the fixture order changes).
 const HISTORY_ACTIONS: Action[] = [
-  { type: 'disinterested', bvid: 'BV1placeholderP1', title: '震惊！明星xxx的家庭真相曝光', upName: '今日热搜君', timestamp: Date.now() - 1 * MIN },
+  { type: 'disinterested', bvid: 'BV1placeholder00', title: '震惊！明星xxx的家庭真相曝光', upName: '今日热搜君', timestamp: Date.now() - 1 * MIN },
   { type: 'blockUp', upName: '数码档案室', timestamp: Date.now() - 2 * MIN },
   recentActions[0],
   recentActions[2],
