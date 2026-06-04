@@ -601,59 +601,62 @@ function ensurePortal(): HTMLElement {
   return portal
 }
 
-function buildActionButtons(info: CardInfo, container: HTMLElement): void {
-  const disBtn = document.createElement('button')
-  disBtn.className = 'bf-ext-btn bf-ext-btn--disinterest'
-  disBtn.textContent = '不感兴趣'
-  disBtn.title = '对这个内容不感兴趣'
-  disBtn.addEventListener('click', async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (!info.bvid) return
-    LOG(`反馈：不感兴趣`, { bvid: info.bvid, title: info.title, upName: info.upName })
-    await triggerNativeFeedback(info.element, '内容不感兴趣')
-    await saveAction({
-      type: 'disinterested',
-      bvid: info.bvid,
-      title: info.title,
-      upName: info.upName,
-      timestamp: Date.now(),
+function buildActionButtons(info: CardInfo, container: HTMLElement): boolean {
+  if (info.bvid) {
+    const disBtn = document.createElement('button')
+    disBtn.className = 'bf-ext-btn bf-ext-btn--disinterest'
+    disBtn.textContent = '不感兴趣'
+    disBtn.title = '对这个内容不感兴趣'
+    disBtn.addEventListener('click', async (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      LOG(`反馈：不感兴趣`, { bvid: info.bvid, title: info.title, upName: info.upName })
+      await triggerNativeFeedback(info.element, '内容不感兴趣')
+      await saveAction({
+        type: 'disinterested',
+        bvid: info.bvid,
+        title: info.title,
+        upName: info.upName,
+        timestamp: Date.now(),
+      })
+      info.element.classList.add('bf-ext-hidden-card')
+      removePortalEntry(info.element)
     })
-    info.element.classList.add('bf-ext-hidden-card')
-    removePortalEntry(info.element)
-  })
+    container.appendChild(disBtn)
+  }
 
-  const upBtn = document.createElement('button')
-  upBtn.className = 'bf-ext-btn bf-ext-btn--blockup'
-  upBtn.textContent = '不看TA'
-  upBtn.title = `屏蔽 ${info.upName} 的所有视频`
-  upBtn.addEventListener('click', async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (!info.upName) return
-    LOG(`反馈：屏蔽UP主「${info.upName}」`, { uid: info.uid })
-    await triggerNativeFeedback(info.element, '不想看此UP主')
-    await saveAction({
-      type: 'blockUp',
-      upName: info.upName,
-      uid: info.uid,
-      timestamp: Date.now(),
+  if (info.upName) {
+    const upBtn = document.createElement('button')
+    upBtn.className = 'bf-ext-btn bf-ext-btn--blockup'
+    upBtn.textContent = '不看TA'
+    upBtn.title = `屏蔽 ${info.upName} 的所有视频`
+    upBtn.addEventListener('click', async (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      LOG(`反馈：屏蔽UP主「${info.upName}」`, { uid: info.uid })
+      await triggerNativeFeedback(info.element, '不想看此UP主')
+      await saveAction({
+        type: 'blockUp',
+        upName: info.upName,
+        uid: info.uid,
+        timestamp: Date.now(),
+      })
+      let hiddenCount = 0
+      document.querySelectorAll<HTMLElement>('[data-bf-upname]').forEach(el => {
+        if (el.dataset.bfUpname === info.upName) {
+          el.classList.add('bf-ext-hidden-card')
+          removePortalEntry(el)
+          hiddenCount++
+        }
+      })
+      LOG(`已隐藏「${info.upName}」的 ${hiddenCount} 个卡片`)
+      info.element.classList.add('bf-ext-hidden-card')
+      removePortalEntry(info.element)
     })
-    let hiddenCount = 0
-    document.querySelectorAll<HTMLElement>('[data-bf-upname]').forEach(el => {
-      if (el.dataset.bfUpname === info.upName) {
-        el.classList.add('bf-ext-hidden-card')
-        removePortalEntry(el)
-        hiddenCount++
-      }
-    })
-    LOG(`已隐藏「${info.upName}」的 ${hiddenCount} 个卡片`)
-    info.element.classList.add('bf-ext-hidden-card')
-    removePortalEntry(info.element)
-  })
+    container.appendChild(upBtn)
+  }
 
-  container.appendChild(disBtn)
-  container.appendChild(upBtn)
+  return container.childElementCount > 0
 }
 
 function injectHomepageButtons(info: CardInfo): void {
@@ -661,7 +664,7 @@ function injectHomepageButtons(info: CardInfo): void {
   if (!wrap) return
   const container = document.createElement('div')
   container.className = 'bf-ext-actions'
-  buildActionButtons(info, container)
+  if (!buildActionButtons(info, container)) return
   wrap.appendChild(container)
 }
 
@@ -671,7 +674,7 @@ function injectPopularButtons(info: CardInfo): void {
   // 与首页观感一致。无 portal；无原生反馈菜单 → triggerNativeFeedback 即时 no-op。
   const container = document.createElement('div')
   container.className = 'bf-ext-actions'
-  buildActionButtons(info, container)
+  if (!buildActionButtons(info, container)) return
   info.element.appendChild(container)
 }
 
@@ -684,7 +687,7 @@ function injectSidebarButtons(info: CardInfo): void {
   const portal = ensurePortal()
   const container = document.createElement('div')
   container.className = 'bf-ext-actions-portal'
-  buildActionButtons(info, container)
+  if (!buildActionButtons(info, container)) return
   portal.appendChild(container)
 
   // Event listeners on the card don't mutate the DOM, so they don't trip the
