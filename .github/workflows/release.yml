@@ -27,20 +27,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Sync version from tag
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          echo "Setting version to $VERSION"
-          node -e "
-            const fs = require('fs');
-            for (const f of ['manifest.json', 'package.json']) {
-              const j = JSON.parse(fs.readFileSync(f, 'utf8'));
-              j.version = '$VERSION';
-              fs.writeFileSync(f, JSON.stringify(j, null, 2) + '\n');
-            }
-          "
-
       - name: Build extension
+        # Version is derived from the git tag in vite.config.ts (it runs
+        # `git describe`), so the build at tag vX.Y.Z produces version X.Y.Z.
+        # checkout above uses fetch-depth: 0 so the tag is available to describe.
         run: pnpm build
 
       - name: Package extension zip

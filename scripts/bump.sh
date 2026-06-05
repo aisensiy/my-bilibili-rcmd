@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
-# Bump version in manifest.json and package.json, commit, and create an
-# annotated git tag. Does NOT push — review and `git push --follow-tags`
-# manually so the release workflow only fires when you mean it.
+# The real source of truth for the version is the git tag — vite.config.ts
+# derives the manifest version from `git describe` at build time. This script is
+# a convenience: it updates the package.json *fallback* (used only when git/tags
+# are unavailable, e.g. a source-zip build), commits it, and creates the
+# annotated tag that actually drives the version. Does NOT push — review and
+# `git push --follow-tags` manually so the release workflow only fires when you
+# mean it. (Tag-only is also fine: `git tag -a vX.Y.Z -m vX.Y.Z` without this.)
 #
 # Usage: ./scripts/bump.sh <version>
 # Example: ./scripts/bump.sh 0.1.2
@@ -29,23 +33,22 @@ if git rev-parse "v$VERSION" >/dev/null 2>&1; then
   exit 1
 fi
 
-# Refuse to run if either file has unstaged edits — we'd accidentally
+# Refuse to run if package.json has unstaged edits — we'd accidentally
 # pull those into the bump commit.
-if ! git diff --quiet -- manifest.json package.json; then
-  echo "Error: manifest.json or package.json has unstaged changes. Stash or commit them first." >&2
+if ! git diff --quiet -- package.json; then
+  echo "Error: package.json has unstaged changes. Stash or commit them first." >&2
   exit 1
 fi
 
 node -e "
   const fs = require('fs');
-  for (const f of ['manifest.json', 'package.json']) {
-    const j = JSON.parse(fs.readFileSync(f, 'utf8'));
-    j.version = '$VERSION';
-    fs.writeFileSync(f, JSON.stringify(j, null, 2) + '\n');
-  }
+  const f = 'package.json';
+  const j = JSON.parse(fs.readFileSync(f, 'utf8'));
+  j.version = '$VERSION';
+  fs.writeFileSync(f, JSON.stringify(j, null, 2) + '\n');
 "
 
-git add manifest.json package.json
+git add package.json
 git commit -m "chore: bump version to $VERSION"
 git tag -a "v$VERSION" -m "v$VERSION"
 

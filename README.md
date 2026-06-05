@@ -120,14 +120,16 @@ pnpm build  # 一次构建
 
 ### 发版流程
 
-版本号是 `manifest.json` 和 `package.json` 两处。发版前先 bump 写进 git，再打 tag 触发 CI 构建。
+版本号的单一事实来源是 **git tag**。`vite.config.ts` 构建时跑 `git describe` 派生版本写进 manifest，本地 dev 构建也会显示真实版本——精确落在 tag 上 → `0.4.0`，tag 之后 N 个提交 → `0.4.0.N`；无 git/tag 时（浅克隆、source zip）回退到 `package.json` 里的号。`manifest.json` 不再写版本号。
+
+发版只需打 tag：
 
 ```bash
-./scripts/bump.sh 0.1.2     # 改两个文件，commit，打 v0.1.2 tag
-git push --follow-tags      # 推到远端，CI 自动构建并发到 Chrome Web Store
+git tag -a v0.4.1 -m v0.4.1
+git push --follow-tags      # CI 构建并发到 Chrome Web Store，版本号由 tag 派生
 ```
 
-CI（`.github/workflows/release.yml`）里也有从 tag 同步版本的兜底步骤，但流程上 source 是源码，CI 只是建产物。别让两边脱钩。
+可选 `./scripts/bump.sh 0.4.1`：顺手把 `package.json` 的回退号更新到 0.4.1、commit 并打 tag，再 `git push --follow-tags`。CI（`.github/workflows/release.yml`）在 tag 上构建，版本号同样由 `git describe` 派生，无需再改文件。
 
 ## License
 
