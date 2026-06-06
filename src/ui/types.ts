@@ -45,6 +45,7 @@ export type Action = PlayAction | DisinterestedAction | BlockUpAction | BlockTop
 export interface UserProfile {
   interests: string[]
   disinterests: string[]
+  disinterestKeywords: string[]
   blockedUps: string[]
   analysis: string
   lastUpdated: number
@@ -87,6 +88,7 @@ export interface StorageData {
 export const DEFAULT_PROFILE: UserProfile = {
   interests: [],
   disinterests: [],
+  disinterestKeywords: [],
   blockedUps: [],
   analysis: '尚未分析。',
   lastUpdated: 0,

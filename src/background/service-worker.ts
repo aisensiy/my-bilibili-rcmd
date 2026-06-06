@@ -6,6 +6,7 @@ import { callProvider } from '../lib/providers'
 const DEFAULT_PROFILE: UserProfile = {
   interests: [],
   disinterests: [],
+  disinterestKeywords: [],
   blockedUps: [],
   analysis: '尚未分析。',
   lastUpdated: 0,
@@ -153,6 +154,7 @@ ${JSON.stringify(userProfile, null, 2)}
       newProfile = {
         interests: Array.isArray(parsed.interests) ? parsed.interests : [],
         disinterests: Array.isArray(parsed.disinterests) ? parsed.disinterests : [],
+        disinterestKeywords: Array.isArray(parsed.disinterestKeywords) ? parsed.disinterestKeywords : [],
         blockedUps: Array.isArray(parsed.blockedUps) ? parsed.blockedUps : [],
         analysis: typeof parsed.analysis === 'string' ? parsed.analysis : '',
         lastUpdated: Date.now(),
