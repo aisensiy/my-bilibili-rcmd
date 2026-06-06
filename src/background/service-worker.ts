@@ -1,4 +1,4 @@
-import type { Action, UserProfile } from '../extension/lib/storage'
+import type { Action, PlayAction, UserProfile } from '../extension/lib/storage'
 import { callProvider } from '../lib/providers'
 
 // Intentionally a local copy — service worker shouldn't import extension-only modules.
@@ -81,29 +81,52 @@ async function buildProfile(): Promise<void> {
     return
   }
 
-  const recentActions: Action[] = (actions as Action[]).slice(0, 50)
+  const recentActions = (actions as Action[]).slice(0, 50)
 
-  const prompt = `你是一个分析用户 Bilibili 观看行为的助手。根据以下行为数据，更新用户的兴趣画像。只返回严格的 JSON，不要有任何其他文字。
+  // 正样本：完播率高的 play，代表"真的爱看"。喂给 LLM 做校验，避免提词误伤爱看内容。
+  const liked = recentActions
+    .filter((a): a is PlayAction => a.type === 'play')
+    .filter(a => a.watchRatio > 0.5)
+    .slice(0, 30)
+    .map(a => ({ title: a.title, upName: a.upName, watchRatio: a.watchRatio }))
 
-最近行为（最新 ${recentActions.length} 条）：
-${JSON.stringify(recentActions, null, 2)}
+  // 负样本：明确的"不想看"信号。只发匹配相关的精简字段。
+  const disliked = recentActions
+    .filter(a => a.type === 'disinterested' || a.type === 'blockUp' || a.type === 'blockTopic')
+    .map(a => {
+      if (a.type === 'blockTopic') return { phrase: a.phrase }
+      if (a.type === 'blockUp') return { upName: a.upName }
+      return { title: a.title, upName: a.upName }
+    })
 
-当前画像（参考，可修改）：
+  const prompt = `你是一个分析用户 Bilibili 观看行为的助手。根据正负样本更新画像，并提取可用于"标题子串匹配"的具体屏蔽词。只返回严格的 JSON，不要任何其他文字。
+
+【爱看】（完播率较高，代表用户真的喜欢，共 ${liked.length} 条）：
+${JSON.stringify(liked, null, 2)}
+
+【不想看】（用户点了"不感兴趣"/"不看TA"或主动屏蔽的话题，共 ${disliked.length} 条）：
+${JSON.stringify(disliked, null, 2)}
+
+当前画像（参考，用户可能手动改过，请尊重其编辑）：
 ${JSON.stringify(userProfile, null, 2)}
 
-请分析用户的内容偏好，返回以下 JSON 格式：
+返回以下 JSON 格式：
 {
-  "interests": ["标签1", "标签2", ...],
-  "disinterests": ["标签1", "标签2", ...],
+  "interests": ["标签1", ...],
+  "disinterests": ["概念标签1", ...],
   "blockedUps": ["UP主名1", ...],
-  "analysis": "用中文简要描述用户的观看偏好和行为模式（2-3句话）"
+  "disinterestKeywords": ["可匹配标题的具体词1", ...],
+  "analysis": "用中文简要描述用户偏好和行为模式（2-3句话）"
 }
 
 注意：
-- interests 是用户喜欢看的内容类型，从标题/行为推断（如"科技"、"编程"、"烹饪"等）
-- disinterests 是用户明确不感兴趣的类型（来自 disinterested 行为，以及 blockTopic 行为——把用户主动屏蔽的热搜话题 phrase 归纳成具体的不感兴趣标签，便于关键词匹配）
-- blockedUps 来自 blockUp 行为，直接取 upName
-- 标签要具体，方便后续关键词匹配（比如"军事"而不是"严肃内容"）`
+- interests / disinterests 是给用户看的"画像镜子"：概念化的喜欢/不喜欢类型（如"科技"、"营销号内容"），不要求能匹配标题。
+- blockedUps 来自"不看TA"行为，直接取 upName。
+- disinterestKeywords 是真正用于过滤的词，要求"保守优先、宁漏不误"：
+  - 只从【不想看】的标题里提取"字面上真实出现、且会在其他同类标题里复现"的具体词、标题党话术、或反复出现的 UP 名（如"速看"、"震惊"、"X分钟看完"、某个营销号名）。
+  - 绝对不要输出会命中任何一条【爱看】标题的词（先用【爱看】做校验，会误伤就丢弃）。
+  - 不要宽泛类别词（不要"游戏"、"科技"这种会误伤的大词）。
+  - 最多 15 个；没有足够把握时宁可少给或给空数组。`
 
   currentAnalysis = {
     running: true,
