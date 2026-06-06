@@ -66,12 +66,21 @@ export default function ProfileView({
         />
 
         <TagList
-          label="不感兴趣（自动屏蔽匹配标题）"
-          hint="AI 生成的标签，匹配标题会自动隐藏。你可以增删"
+          label="不感兴趣（AI 的理解）"
+          hint="AI 理解你不喜欢的方向，会作为参考影响下次分析；不直接过滤"
           color="#fb7299"
           tags={profile.disinterests}
           onAdd={onEditProfile && (tag => save({ ...profile, disinterests: [...profile.disinterests, tag] }))}
           onRemove={onEditProfile && (tag => save({ ...profile, disinterests: profile.disinterests.filter(t => t !== tag) }))}
+        />
+
+        <TagList
+          label="AI 自动屏蔽词（匹配标题）"
+          hint="AI 从你不想看的内容里提取的字面词，匹配标题即隐藏。可增删"
+          color="#fb7299"
+          tags={profile.disinterestKeywords}
+          onAdd={onEditProfile && (tag => save({ ...profile, disinterestKeywords: [...profile.disinterestKeywords, tag] }))}
+          onRemove={onEditProfile && (tag => save({ ...profile, disinterestKeywords: profile.disinterestKeywords.filter(t => t !== tag) }))}
         />
 
         <TagList
