@@ -37,13 +37,16 @@ export default function ProfileView({
       <div className="flex-1 overflow-y-auto p-4 pb-2">
         {/* AI profile — read-only mirror; AI derives all of this from your behavior */}
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
-          <div className="flex items-center gap-1.5 mb-2.5">
+          <div className="flex items-center gap-1.5 mb-1">
             <svg className="w-4 h-4 text-bili-blue shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
               <circle cx="12" cy="12" r="3" />
             </svg>
             <span className="text-sm font-bold text-gray-800">画像 · AI 看到的你</span>
           </div>
+          <p className="text-[11px] text-gray-400 leading-relaxed mb-2.5">
+            由你的观看与屏蔽行为自动生成；想调整就多看或主动屏蔽相应内容，下次分析会更新。
+          </p>
 
           <div className="text-xs text-gray-600 leading-relaxed mb-3">
             {profile.lastUpdated === 0 ? (
