@@ -36,7 +36,7 @@ export default function ProfileView({
     <div className="h-full flex flex-col">
       <div className="flex-1 overflow-y-auto p-4 pb-2">
         {/* AI profile — read-only mirror; AI derives all of this from your behavior */}
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-5">
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
           <div className="text-sm font-bold text-gray-800 mb-2.5">画像 · AI 看到的你</div>
 
           <div className="text-xs text-gray-600 leading-relaxed mb-3">
@@ -74,25 +74,28 @@ export default function ProfileView({
           />
         </div>
 
-        <div className="text-sm font-bold text-gray-800 mb-2.5 pb-1.5 border-b border-gray-200">你的屏蔽（可编辑）</div>
+        {/* Your block controls (editable) — same card structure as the mirror above */}
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-2">
+          <div className="text-sm font-bold text-gray-800 mb-2.5">你的屏蔽（可编辑）</div>
 
-        <TagList
-          label="AI 自动屏蔽词（匹配标题）"
-          hint="AI 从你不想看的内容里提取的字面词，匹配标题即隐藏。可增删"
-          color="#fb7299"
-          tags={profile.disinterestKeywords}
-          onAdd={onEditProfile && (tag => save({ ...profile, disinterestKeywords: [...profile.disinterestKeywords, tag] }))}
-          onRemove={onEditProfile && (tag => save({ ...profile, disinterestKeywords: profile.disinterestKeywords.filter(t => t !== tag) }))}
-        />
+          <TagList
+            label="AI 自动屏蔽词（匹配标题）"
+            hint="AI 从你不想看的内容里提取的字面词，匹配标题即隐藏。可增删"
+            color="#fb7299"
+            tags={profile.disinterestKeywords}
+            onAdd={onEditProfile && (tag => save({ ...profile, disinterestKeywords: [...profile.disinterestKeywords, tag] }))}
+            onRemove={onEditProfile && (tag => save({ ...profile, disinterestKeywords: profile.disinterestKeywords.filter(t => t !== tag) }))}
+          />
 
-        <TagList
-          label="屏蔽的 UP 主"
-          hint="AI 从你的行为里提取，你也可以手动加"
-          color="#9e9e9e"
-          tags={profile.blockedUps}
-          onAdd={onEditProfile && (tag => save({ ...profile, blockedUps: [...profile.blockedUps, tag] }))}
-          onRemove={onEditProfile && (tag => save({ ...profile, blockedUps: profile.blockedUps.filter(t => t !== tag) }))}
-        />
+          <TagList
+            label="屏蔽的 UP 主"
+            hint="AI 从你的行为里提取，你也可以手动加"
+            color="#9e9e9e"
+            tags={profile.blockedUps}
+            onAdd={onEditProfile && (tag => save({ ...profile, blockedUps: [...profile.blockedUps, tag] }))}
+            onRemove={onEditProfile && (tag => save({ ...profile, blockedUps: profile.blockedUps.filter(t => t !== tag) }))}
+          />
+        </div>
       </div>
 
       {/* 固定底部操作栏，跟 SettingsTab 一致——常驻可见，内容较长时无需滚动找按钮 */}
