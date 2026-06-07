@@ -35,7 +35,8 @@ export default function ProfileView({
   return (
     <div className="h-full flex flex-col">
       <div className="flex-1 overflow-y-auto p-4 pb-2">
-        {/* Analysis summary */}
+        <div className="text-[11px] font-bold text-gray-700 mb-2 pb-1.5 border-b border-gray-100">画像 · AI 看到的你</div>
+        {/* Analysis summary — read-only mirror; AI derives this from your behavior */}
         <div className="bg-gray-50 rounded-lg p-3 mb-4 text-xs text-gray-600 leading-relaxed">
           {profile.lastUpdated === 0 ? (
             <>
@@ -58,21 +59,19 @@ export default function ProfileView({
 
         <TagList
           label="喜欢的内容"
-          hint="AI 看到的你（仅供你判断 AI 理解是否对齐，不影响过滤）"
+          hint="AI 推断你喜欢的方向，不参与过滤"
           color="#00a1d6"
           tags={profile.interests}
-          onAdd={onEditProfile && (tag => save({ ...profile, interests: [...profile.interests, tag] }))}
-          onRemove={onEditProfile && (tag => save({ ...profile, interests: profile.interests.filter(t => t !== tag) }))}
         />
 
         <TagList
-          label="不感兴趣（AI 的理解）"
-          hint="AI 理解你不喜欢的方向，会作为参考影响下次分析；不直接过滤"
+          label="不感兴趣"
+          hint="AI 推断你不喜欢的方向，不参与过滤"
           color="#fb7299"
           tags={profile.disinterests}
-          onAdd={onEditProfile && (tag => save({ ...profile, disinterests: [...profile.disinterests, tag] }))}
-          onRemove={onEditProfile && (tag => save({ ...profile, disinterests: profile.disinterests.filter(t => t !== tag) }))}
         />
+
+        <div className="text-[11px] font-bold text-gray-700 mb-2 mt-5 pb-1.5 border-b border-gray-100">你的屏蔽（可编辑）</div>
 
         <TagList
           label="AI 自动屏蔽词（匹配标题）"
