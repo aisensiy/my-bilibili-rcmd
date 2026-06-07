@@ -37,7 +37,13 @@ export default function ProfileView({
       <div className="flex-1 overflow-y-auto p-4 pb-2">
         {/* AI profile — read-only mirror; AI derives all of this from your behavior */}
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
-          <div className="text-sm font-bold text-gray-800 mb-2.5">画像 · AI 看到的你</div>
+          <div className="flex items-center gap-1.5 mb-2.5">
+            <svg className="w-4 h-4 text-bili-blue shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            <span className="text-sm font-bold text-gray-800">画像 · AI 看到的你</span>
+          </div>
 
           <div className="text-xs text-gray-600 leading-relaxed mb-3">
             {profile.lastUpdated === 0 ? (
@@ -76,7 +82,12 @@ export default function ProfileView({
 
         {/* Your block controls (editable) — same card structure as the mirror above */}
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-2">
-          <div className="text-sm font-bold text-gray-800 mb-2.5">你的屏蔽（可编辑）</div>
+          <div className="flex items-center gap-1.5 mb-2.5">
+            <svg className="w-4 h-4 text-bili-pink shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            <span className="text-sm font-bold text-gray-800">你的屏蔽（可编辑）</span>
+          </div>
 
           <TagList
             label="AI 自动屏蔽词（匹配标题）"
