@@ -66,8 +66,11 @@ export const storage = {
   },
 
   async getProfile(): Promise<UserProfile> {
-    const { userProfile = DEFAULT_PROFILE } = await get(['userProfile'])
-    return userProfile
+    const { userProfile } = await get(['userProfile'])
+    // Spread DEFAULT_PROFILE so a profile stored before a field existed (e.g.
+    // disinterestKeywords) gets the missing key filled in. A destructuring default
+    // only fires when the key is wholly absent, not when the object lacks a field.
+    return { ...DEFAULT_PROFILE, ...userProfile }
   },
 
   async setProfile(profile: UserProfile): Promise<void> {
@@ -123,11 +126,6 @@ export const storage = {
 
   async setBlockedKeywords(keywords: string[]): Promise<void> {
     await set({ blockedKeywords: keywords })
-  },
-
-  async getFilterData(): Promise<{ profile: UserProfile; keywords: string[] }> {
-    const { userProfile = DEFAULT_PROFILE, blockedKeywords = [] } = await get(['userProfile', 'blockedKeywords'])
-    return { profile: userProfile, keywords: blockedKeywords }
   },
 
   async getActionsSinceLastAnalysis(): Promise<number> {

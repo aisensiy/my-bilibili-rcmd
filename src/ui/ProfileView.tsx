@@ -35,8 +35,24 @@ export default function ProfileView({
   return (
     <div className="h-full flex flex-col">
       <div className="flex-1 overflow-y-auto p-4 pb-2">
-        {/* Analysis summary */}
-        <div className="bg-gray-50 rounded-lg p-3 mb-4 text-xs text-gray-600 leading-relaxed">
+        {/* AI profile — read-only mirror; AI derives all of this from your behavior */}
+        <div className="flex items-center gap-1.5 mb-1">
+          <svg className="w-4 h-4 text-bili-blue shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+          <span className="text-sm font-bold text-gray-800">画像 · AI 看到的你</span>
+          {profile.lastUpdated !== 0 && (
+            <span className="ml-auto shrink-0 text-[10px] font-normal text-gray-400">
+              更新于 {new Date(profile.lastUpdated).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
+        </div>
+        <p className="text-[11px] text-gray-400 leading-relaxed mb-2.5">
+          由你的观看与屏蔽行为自动生成；想调整就多看或主动屏蔽相应内容，下次分析会更新。
+        </p>
+
+        <div className="text-xs text-gray-600 leading-relaxed mb-3">
           {profile.lastUpdated === 0 ? (
             <>
               <div className="font-medium text-gray-700 mb-1">AI 还不认识你</div>
@@ -47,41 +63,51 @@ export default function ProfileView({
               )}
             </>
           ) : (
-            <>
-              {profile.analysis || '尚未分析。'}
-              <div className="mt-1 text-gray-400">
-                更新于 {new Date(profile.lastUpdated).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-              </div>
-            </>
+            profile.analysis || '尚未分析。'
           )}
         </div>
 
         <TagList
           label="喜欢的内容"
-          hint="AI 看到的你（仅供你判断 AI 理解是否对齐，不影响过滤）"
+          hint="AI 推断你喜欢的方向，不参与过滤"
           color="#00a1d6"
           tags={profile.interests}
-          onAdd={onEditProfile && (tag => save({ ...profile, interests: [...profile.interests, tag] }))}
-          onRemove={onEditProfile && (tag => save({ ...profile, interests: profile.interests.filter(t => t !== tag) }))}
         />
 
         <TagList
-          label="不感兴趣（自动屏蔽匹配标题）"
-          hint="AI 生成的标签，匹配标题会自动隐藏。你可以增删"
+          label="不感兴趣"
+          hint="AI 推断你不喜欢的方向，不参与过滤"
           color="#fb7299"
           tags={profile.disinterests}
-          onAdd={onEditProfile && (tag => save({ ...profile, disinterests: [...profile.disinterests, tag] }))}
-          onRemove={onEditProfile && (tag => save({ ...profile, disinterests: profile.disinterests.filter(t => t !== tag) }))}
         />
 
-        <TagList
-          label="屏蔽的 UP 主"
-          hint="AI 从你的行为里提取，你也可以手动加"
-          color="#9e9e9e"
-          tags={profile.blockedUps}
-          onAdd={onEditProfile && (tag => save({ ...profile, blockedUps: [...profile.blockedUps, tag] }))}
-          onRemove={onEditProfile && (tag => save({ ...profile, blockedUps: profile.blockedUps.filter(t => t !== tag) }))}
-        />
+        {/* Your block controls (editable) — flat section, divider above, matching other tabs */}
+        <div className="mt-5 pt-4 border-t border-gray-100">
+          <div className="flex items-center gap-1.5 mb-2.5">
+            <svg className="w-4 h-4 text-bili-pink shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            <span className="text-sm font-bold text-gray-800">你的屏蔽（可编辑）</span>
+          </div>
+
+          <TagList
+            label="AI 自动屏蔽词（匹配标题）"
+            hint="AI 从你不想看的内容里提取的字面词，匹配标题即隐藏。可增删"
+            color="#fb7299"
+            tags={profile.disinterestKeywords}
+            onAdd={onEditProfile && (tag => save({ ...profile, disinterestKeywords: [...profile.disinterestKeywords, tag] }))}
+            onRemove={onEditProfile && (tag => save({ ...profile, disinterestKeywords: profile.disinterestKeywords.filter(t => t !== tag) }))}
+          />
+
+          <TagList
+            label="屏蔽的 UP 主"
+            hint="AI 从你的行为里提取，你也可以手动加"
+            color="#9e9e9e"
+            tags={profile.blockedUps}
+            onAdd={onEditProfile && (tag => save({ ...profile, blockedUps: [...profile.blockedUps, tag] }))}
+            onRemove={onEditProfile && (tag => save({ ...profile, blockedUps: profile.blockedUps.filter(t => t !== tag) }))}
+          />
+        </div>
       </div>
 
       {/* 固定底部操作栏，跟 SettingsTab 一致——常驻可见，内容较长时无需滚动找按钮 */}

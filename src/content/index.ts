@@ -12,10 +12,10 @@ interface CardInfo {
 interface FilterData {
   profile: {
     interests: string[]
-    disinterests: string[]
     blockedUps: string[]
   }
   keywords: string[]
+  disinterestKeywords: string[]
   disinterestedBvids: Set<string>
   blockedTopicPhrases: string[]
   debugMode: boolean
@@ -36,8 +36,9 @@ interface PlayRecordPayload {
 
 // ==================== State ====================
 let filterData: FilterData = {
-  profile: { interests: [], disinterests: [], blockedUps: [] },
+  profile: { interests: [], blockedUps: [] },
   keywords: [],
+  disinterestKeywords: [],
   disinterestedBvids: new Set(),
   blockedTopicPhrases: [],
   debugMode: false,
@@ -76,13 +77,15 @@ async function loadFilterData(): Promise<void> {
       .map((a: any) => a.phrase as string)
   ))
 
+  const disinterestKeywords: string[] = userProfile.disinterestKeywords ?? []
+
   filterData = {
     profile: {
       interests: userProfile.interests ?? [],
-      disinterests: userProfile.disinterests ?? [],
       blockedUps: mergedBlockedUps,
     },
     keywords: blockedKeywords,
+    disinterestKeywords,
     blockedTopicPhrases,
     disinterestedBvids,
     debugMode: settings.debugMode ?? false,
@@ -417,7 +420,7 @@ const LOG = (...args: any[]) => console.log('%c[BiliFilter]', 'color:#fb7299;fon
 
 // ==================== Filter ====================
 function shouldHide(info: CardInfo): string | null {
-  const { profile, keywords, disinterestedBvids } = filterData
+  const { profile, keywords, disinterestKeywords, disinterestedBvids } = filterData
 
   if (info.upName && profile.blockedUps.some(up => up === info.upName))
     return `屏蔽UP主「${info.upName}」`
@@ -425,10 +428,10 @@ function shouldHide(info: CardInfo): string | null {
   if (info.bvid && disinterestedBvids.has(info.bvid))
     return `已标记不感兴趣`
 
-  const matchedTag = profile.disinterests.find(tag =>
-    info.title.toLowerCase().includes(tag.toLowerCase())
+  const matchedAiKw = disinterestKeywords.find(kw =>
+    info.title.toLowerCase().includes(kw.toLowerCase())
   )
-  if (matchedTag) return `兴趣画像命中「${matchedTag}」`
+  if (matchedAiKw) return `AI 关键词命中「${matchedAiKw}」`
 
   const matchedKw = keywords.find(kw =>
     info.title.toLowerCase().includes(kw.toLowerCase())
@@ -452,11 +455,11 @@ function parseTrendingPhrase(item: HTMLElement): string {
 function shouldHideTrending(phrase: string): boolean {
   if (!phrase) return false
   if (blockedTrendingPhrases.has(phrase)) return true
-  const { keywords, profile, blockedTopicPhrases } = filterData
+  const { keywords, disinterestKeywords, blockedTopicPhrases } = filterData
   if (blockedTopicPhrases.includes(phrase)) return true
   const lower = phrase.toLowerCase()
   if (keywords.some(kw => lower.includes(kw.toLowerCase()))) return true
-  if (profile.disinterests.some(tag => lower.includes(tag.toLowerCase()))) return true
+  if (disinterestKeywords.some(kw => lower.includes(kw.toLowerCase()))) return true
   return false
 }
 
