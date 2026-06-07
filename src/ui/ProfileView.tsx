@@ -36,8 +36,8 @@ export default function ProfileView({
     <div className="h-full flex flex-col">
       <div className="flex-1 overflow-y-auto p-4 pb-2">
         {/* AI profile — read-only mirror; AI derives all of this from your behavior */}
-        <div className="bg-gray-50 rounded-lg p-3 mb-5">
-          <div className="text-[11px] font-bold text-gray-700 mb-2">画像 · AI 看到的你</div>
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-5">
+          <div className="text-sm font-bold text-gray-800 mb-2.5">画像 · AI 看到的你</div>
 
           <div className="text-xs text-gray-600 leading-relaxed mb-3">
             {profile.lastUpdated === 0 ? (
@@ -74,7 +74,7 @@ export default function ProfileView({
           />
         </div>
 
-        <div className="text-[11px] font-bold text-gray-700 mb-2 pb-1.5 border-b border-gray-100">你的屏蔽（可编辑）</div>
+        <div className="text-sm font-bold text-gray-800 mb-2.5 pb-1.5 border-b border-gray-200">你的屏蔽（可编辑）</div>
 
         <TagList
           label="AI 自动屏蔽词（匹配标题）"
