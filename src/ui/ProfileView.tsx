@@ -35,43 +35,46 @@ export default function ProfileView({
   return (
     <div className="h-full flex flex-col">
       <div className="flex-1 overflow-y-auto p-4 pb-2">
-        <div className="text-[11px] font-bold text-gray-700 mb-2 pb-1.5 border-b border-gray-100">画像 · AI 看到的你</div>
-        {/* Analysis summary — read-only mirror; AI derives this from your behavior */}
-        <div className="bg-gray-50 rounded-lg p-3 mb-4 text-xs text-gray-600 leading-relaxed">
-          {profile.lastUpdated === 0 ? (
-            <>
-              <div className="font-medium text-gray-700 mb-1">AI 还不认识你</div>
-              {counter && (
-                <div>
-                  已记录 {counter.since} 条行为，再看 {Math.max(counter.threshold - counter.since, 0)} 个视频就会自动生成你的画像。
+        {/* AI profile — read-only mirror; AI derives all of this from your behavior */}
+        <div className="bg-gray-50 rounded-lg p-3 mb-5">
+          <div className="text-[11px] font-bold text-gray-700 mb-2">画像 · AI 看到的你</div>
+
+          <div className="text-xs text-gray-600 leading-relaxed mb-3">
+            {profile.lastUpdated === 0 ? (
+              <>
+                <div className="font-medium text-gray-700 mb-1">AI 还不认识你</div>
+                {counter && (
+                  <div>
+                    已记录 {counter.since} 条行为，再看 {Math.max(counter.threshold - counter.since, 0)} 个视频就会自动生成你的画像。
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                {profile.analysis || '尚未分析。'}
+                <div className="mt-1 text-gray-400">
+                  更新于 {new Date(profile.lastUpdated).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </div>
-              )}
-            </>
-          ) : (
-            <>
-              {profile.analysis || '尚未分析。'}
-              <div className="mt-1 text-gray-400">
-                更新于 {new Date(profile.lastUpdated).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-              </div>
-            </>
-          )}
+              </>
+            )}
+          </div>
+
+          <TagList
+            label="喜欢的内容"
+            hint="AI 推断你喜欢的方向，不参与过滤"
+            color="#00a1d6"
+            tags={profile.interests}
+          />
+
+          <TagList
+            label="不感兴趣"
+            hint="AI 推断你不喜欢的方向，不参与过滤"
+            color="#fb7299"
+            tags={profile.disinterests}
+          />
         </div>
 
-        <TagList
-          label="喜欢的内容"
-          hint="AI 推断你喜欢的方向，不参与过滤"
-          color="#00a1d6"
-          tags={profile.interests}
-        />
-
-        <TagList
-          label="不感兴趣"
-          hint="AI 推断你不喜欢的方向，不参与过滤"
-          color="#fb7299"
-          tags={profile.disinterests}
-        />
-
-        <div className="text-[11px] font-bold text-gray-700 mb-2 mt-5 pb-1.5 border-b border-gray-100">你的屏蔽（可编辑）</div>
+        <div className="text-[11px] font-bold text-gray-700 mb-2 pb-1.5 border-b border-gray-100">你的屏蔽（可编辑）</div>
 
         <TagList
           label="AI 自动屏蔽词（匹配标题）"
