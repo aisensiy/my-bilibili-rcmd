@@ -43,6 +43,11 @@ export default function ProfileView({
               <circle cx="12" cy="12" r="3" />
             </svg>
             <span className="text-sm font-bold text-gray-800">画像 · AI 看到的你</span>
+            {profile.lastUpdated !== 0 && (
+              <span className="ml-auto shrink-0 text-[10px] font-normal text-gray-400">
+                更新于 {new Date(profile.lastUpdated).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
           </div>
           <p className="text-[11px] text-gray-400 leading-relaxed mb-2.5">
             由你的观看与屏蔽行为自动生成；想调整就多看或主动屏蔽相应内容，下次分析会更新。
@@ -59,12 +64,7 @@ export default function ProfileView({
                 )}
               </>
             ) : (
-              <>
-                {profile.analysis || '尚未分析。'}
-                <div className="mt-1 text-gray-400">
-                  更新于 {new Date(profile.lastUpdated).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                </div>
-              </>
+              profile.analysis || '尚未分析。'
             )}
           </div>
 
