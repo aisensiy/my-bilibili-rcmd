@@ -8,6 +8,7 @@ import type {
   StorageData,
   UserProfile,
   Settings,
+  ImpressionRecord,
 } from '@/ui/types'
 import { DEFAULT_PROFILE } from '@/ui/types'
 
@@ -25,6 +26,7 @@ export type {
   ProviderConfig,
   Settings,
   StorageData,
+  ImpressionRecord,
 } from '@/ui/types'
 
 export { DEFAULT_PROFILE } from '@/ui/types'
@@ -39,6 +41,7 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   triggerThreshold: 5,
   debugMode: false,
+  harvestImpressions: false,
   onboardingComplete: false,
 }
 
@@ -126,6 +129,15 @@ export const storage = {
 
   async setBlockedKeywords(keywords: string[]): Promise<void> {
     await set({ blockedKeywords: keywords })
+  },
+
+  async clearImpressions(): Promise<void> {
+    await set({ impressions: [] })
+  },
+
+  async getImpressions(): Promise<ImpressionRecord[]> {
+    const { impressions = [] } = await get(['impressions'])
+    return impressions
   },
 
   async getActionsSinceLastAnalysis(): Promise<number> {

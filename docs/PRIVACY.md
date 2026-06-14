@@ -143,3 +143,12 @@ Uninstalling the Extension removes all of its local data. You can also click
 
 Questions or concerns? Please open an issue at
 https://github.com/aisensiy/my-bilibili-rcmd/issues
+
+## 可选功能：采集推荐流标题（默认关）
+
+设置里有一个「采集推荐流标题（增强 AI 屏蔽词）」开关，**默认关闭**。
+
+- 关闭时：行为与以往一致，只在 AI 分析时把最近行为摘要发给你自己配置的 LLM。
+- 开启时：你在 B 站刷到的视频标题（B 站推送给你的推荐结果，不是你的主动行为）会被去重后存在本地（最多 150 条的滑动窗口），并在分析时随摘要一起发给**你自己配置的 LLM**，用于提取更准的屏蔽关键词。
+- 仍然没有作者服务器、没有埋点；用的始终是你自己的 API Key。
+- 关闭开关会立即清空已采集的本地标题窗口；「清除所有数据」也会清空。

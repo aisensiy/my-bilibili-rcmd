@@ -18,5 +18,6 @@ export const demoSettings: Settings = {
   },
   triggerThreshold: 5,
   debugMode: false,
+  harvestImpressions: false,
   onboardingComplete: true,
 }

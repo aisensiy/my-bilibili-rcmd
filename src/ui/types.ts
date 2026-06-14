@@ -46,6 +46,7 @@ export interface UserProfile {
   interests: string[]
   disinterests: string[]
   disinterestKeywords: string[]
+  dismissedKeywords: string[]
   blockedUps: string[]
   analysis: string
   lastUpdated: number
@@ -74,7 +75,14 @@ export interface Settings {
   }
   triggerThreshold: number
   debugMode: boolean
+  harvestImpressions: boolean
   onboardingComplete: boolean
+}
+
+export interface ImpressionRecord {
+  bvid: string
+  title: string
+  upName: string
 }
 
 export interface StorageData {
@@ -83,12 +91,14 @@ export interface StorageData {
   blockedKeywords: string[]
   settings: Settings
   actionsSinceLastAnalysis: number
+  impressions: ImpressionRecord[]
 }
 
 export const DEFAULT_PROFILE: UserProfile = {
   interests: [],
   disinterests: [],
   disinterestKeywords: [],
+  dismissedKeywords: [],
   blockedUps: [],
   analysis: '尚未分析。',
   lastUpdated: 0,

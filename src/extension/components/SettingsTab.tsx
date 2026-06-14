@@ -58,6 +58,15 @@ export default function SettingsTab() {
     setSavedSnapshot(next)
   }
 
+  const toggleHarvest = () => {
+    const next = { ...settings, harvestImpressions: !settings.harvestImpressions }
+    setSettings(next)
+    storage.setSettings(next)
+    setSavedSnapshot(next)
+    // 关闭采集时清空已收集的曝光池（隐私上不留存）
+    if (!next.harvestImpressions) storage.clearImpressions().catch(console.error)
+  }
+
   const testConnection = async () => {
     const key = cfg.apiKey.trim()
     if (!key) { setTestStatus('fail'); setTestMsg('请先填写 API Key'); return }
@@ -155,6 +164,7 @@ export default function SettingsTab() {
       onUpdateProviderCfg={updateProviderCfg}
       onUpdateThreshold={updateThreshold}
       onToggleDebug={toggleDebug}
+      onToggleHarvest={toggleHarvest}
       onTestConnection={testConnection}
       onSave={save}
       onOpenInTab={() => chrome.runtime.openOptionsPage()}

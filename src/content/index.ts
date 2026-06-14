@@ -19,6 +19,7 @@ interface FilterData {
   disinterestedBvids: Set<string>
   blockedTopicPhrases: string[]
   debugMode: boolean
+  harvestImpressions: boolean
 }
 
 interface PlayRecordPayload {
@@ -42,6 +43,7 @@ let filterData: FilterData = {
   disinterestedBvids: new Set(),
   blockedTopicPhrases: [],
   debugMode: false,
+  harvestImpressions: false,
 }
 
 // ==================== Storage helpers ====================
@@ -89,6 +91,13 @@ async function loadFilterData(): Promise<void> {
     blockedTopicPhrases,
     disinterestedBvids,
     debugMode: settings.debugMode ?? false,
+    harvestImpressions: settings.harvestImpressions ?? false,
+  }
+
+  // 关闭采集时清掉内存缓冲 + 取消待落盘定时器（持久化的 impressions 由设置页清）
+  if (!filterData.harvestImpressions) {
+    impressionBuffer = []
+    if (impressionFlushTimer) { clearTimeout(impressionFlushTimer); impressionFlushTimer = null }
   }
 }
 
@@ -142,6 +151,53 @@ async function upsertPlayAction(action: PlayRecordPayload): Promise<void> {
 
   if (existingIndex < 0) {
     chrome.runtime.sendMessage({ type: 'check_trigger' }).catch(() => {})
+  }
+}
+
+// ==================== Impression harvesting ====================
+// 复用已解析的卡片，把"刷到过的推荐标题"攒成本地滑动窗口（仅在开关开时）。
+// 去重 by bvid、队首最新、上限 150。节流落盘避免每张卡片都写 storage。
+const IMPRESSION_CAP = 500
+let impressionBuffer: { bvid: string; title: string; upName: string }[] = []
+let impressionFlushTimer: ReturnType<typeof setTimeout> | null = null
+
+function recordImpression(info: CardInfo): void {
+  if (!filterData.harvestImpressions) return
+  if (!info.bvid || !info.title) return
+  impressionBuffer.push({ bvid: info.bvid, title: info.title, upName: info.upName })
+  if (impressionFlushTimer) return
+  impressionFlushTimer = setTimeout(() => {
+    impressionFlushTimer = null
+    void flushImpressions()
+  }, 3000)
+}
+
+// 互斥：避免 timer / 跳转 / pagehide 三路重叠 flush 各自读到旧值再互相覆盖、丢数据。
+let flushing = false
+async function flushImpressions(): Promise<void> {
+  if (flushing || impressionBuffer.length === 0) return
+  flushing = true
+  try {
+    const batch = impressionBuffer
+    impressionBuffer = []
+    const newestFirst = [...batch].reverse()
+    const { impressions = [] } = await storageGet(['impressions'])
+    // 落盘期间用户若关掉采集，丢弃本次写入，保证"关时清空曝光池"是硬保证而非尽力而为。
+    if (!filterData.harvestImpressions) return
+    const seen = new Set<string>()
+    const merged: { bvid: string; title: string; upName: string }[] = []
+    for (const rec of [...newestFirst, ...(impressions as any[])]) {
+      if (!rec || !rec.bvid || seen.has(rec.bvid)) continue
+      seen.add(rec.bvid)
+      merged.push({ bvid: rec.bvid, title: rec.title, upName: rec.upName })
+      if (merged.length >= IMPRESSION_CAP) break
+    }
+    await storageSet({ impressions: merged })
+    const existingBvids = new Set((impressions as any[]).map((r: any) => r?.bvid).filter(Boolean))
+    const added = new Set(newestFirst.map(r => r.bvid).filter(b => b && !existingBvids.has(b))).size
+    LOG('曝光落盘', { 本批: newestFirst.length, 新增: added, 窗口: `${merged.length}/${IMPRESSION_CAP}` })
+  } finally {
+    flushing = false
   }
 }
 
@@ -845,6 +901,8 @@ function processCard(el: HTMLElement, isHomepage: boolean): void {
   const info = isHomepage ? parseHomepageCard(el) : parseSidebarCard(el)
   if (!info) return
 
+  recordImpression(info)
+
   // Store upname for bulk-hide on blockUp
   if (info.upName) el.dataset.bfUpname = info.upName
 
@@ -872,6 +930,8 @@ function processPopularCard(
 
   const info = parse(el)
   if (!info) return
+
+  recordImpression(info)
 
   // Store upname for bulk-hide on blockUp
   if (info.upName) el.dataset.bfUpname = info.upName
@@ -1102,6 +1162,7 @@ function watchNavigation(): void {
 
   function onUrlChange() {
     if (location.href === lastUrl) return
+    void flushImpressions()
     lastUrl = location.href
     LOG('页面跳转', { url: location.pathname })
     // Give the SPA a moment to render before re-scanning
@@ -1155,6 +1216,7 @@ async function init(): Promise<void> {
       resetTrendings()
     }
   })
+  window.addEventListener('pagehide', () => { void flushImpressions() })
 }
 
 // Declare global type for Bilibili's initial state

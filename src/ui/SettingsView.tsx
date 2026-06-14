@@ -23,6 +23,7 @@ export interface SettingsViewProps {
   onUpdateProviderCfg?: (patch: { apiKey?: string; model?: string; baseUrl?: string }) => void
   onUpdateThreshold?: (n: number) => void
   onToggleDebug?: () => void
+  onToggleHarvest?: () => void
   onTestConnection?: () => void
   onSave?: () => void
   onOpenInTab?: () => void
@@ -46,6 +47,7 @@ export default function SettingsView({
   onUpdateProviderCfg,
   onUpdateThreshold,
   onToggleDebug,
+  onToggleHarvest,
   onTestConnection,
   onSave,
   onOpenInTab,
@@ -230,6 +232,29 @@ export default function SettingsView({
           <span
             className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
               settings.debugMode ? 'translate-x-5' : ''
+            }`}
+          />
+        </button>
+      </div>
+
+      {/* 采集推荐流标题 */}
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex-1 pr-3">
+          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">采集推荐流标题（增强 AI 屏蔽词）</div>
+          <p className="text-[10px] text-gray-400 mt-0.5 leading-relaxed">
+            开启后，你刷到的视频标题（B 站的推荐结果，非你的行为）会被采样，分析时发给你自己的 LLM 以提取更准的屏蔽词。默认关、无作者服务器、可随时关。
+          </p>
+        </div>
+        <button
+          onClick={() => onToggleHarvest?.()}
+          disabled={!onToggleHarvest}
+          className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${
+            settings.harvestImpressions ? 'bg-bili-pink' : 'bg-gray-300'
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+              settings.harvestImpressions ? 'translate-x-5' : ''
             }`}
           />
         </button>
