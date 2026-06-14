@@ -3,8 +3,9 @@
 // 代码不维护硬编码清单。
 //
 // 'custom' 是通用 OpenAI 兼容入口：base URL 由用户配置，可接任意自部署或第三方服务
-// （longcat、ollama、vLLM、One-API 等等）。custom 路径不发 reasoning/thinking 字段，
-// 因为目标服务的支持情况未知；思考模型靠 test 连接的 maxTokens 抬升 fallback 兜底。
+// （longcat、ollama、vLLM、One-API 等等）。custom 路径只在用户明确选 off/low 时发
+// thinking.disabled（关思考），不发开启思考的字段；其余情况不带任何思考参数。
+// 仍能识别不了关闭开关的端点，靠 test 连接的 maxTokens 抬升 fallback 兜底。
 
 export type ProviderId = 'openrouter' | 'glm' | 'deepseek' | 'custom'
 
@@ -98,7 +99,7 @@ export interface CallProviderOptions {
   // - GLM 原生 (智谱)：只有 thinking.disabled 开关，'off' 和 'low' 都映射成关闭
   // - DeepSeek 原生：V4 系列同样用 thinking.disabled 开关，'off' 和 'low' 映射成关闭
   //   （旧模型 deepseek-chat/reasoner 在 2026-07 之前被替换；旧模型可能忽略此参数）
-  // - custom：始终忽略——目标服务的参数支持情况未知，发了反而可能被 4xx 拒绝
+  // - custom：同二档逻辑，'off'/'low' → thinking.disabled；不认此字段的端点会忽略它
   // 不传则使用模型默认。
   reasoning?: 'off' | 'low' | 'medium' | 'high'
   // 启用 SSE 流式响应。开启后会逐 chunk 调用 onChunk，最终 result.content
@@ -158,8 +159,15 @@ export async function callProvider(opts: CallProviderOptions): Promise<CallProvi
       body.reasoning = opts.reasoning === 'off'
         ? { enabled: false }
         : { effort: opts.reasoning }
-    } else if (opts.provider === 'glm' || opts.provider === 'deepseek') {
+    } else if (
+      opts.provider === 'glm' ||
+      opts.provider === 'deepseek' ||
+      opts.provider === 'custom'
+    ) {
       // 二档 provider 无 medium/high 概念；只在用户明确想"少思考"时关掉。
+      // custom 也走这条：很多自定义端点（GLM/DeepSeek 兼容、vLLM 等）默认开思考，
+      // 不发关闭开关就会狂想几万字。只在 off/low 时发 thinking.disabled——这是最常见的
+      // 关闭字段，且仅在用户明确要少思考时才发，未知端点忽略它即可，默认行为不变。
       if (opts.reasoning === 'off' || opts.reasoning === 'low') {
         body.thinking = { type: 'disabled' }
       }
