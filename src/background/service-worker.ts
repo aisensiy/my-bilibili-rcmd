@@ -63,54 +63,79 @@ function mergeKeywords(active: string[], candidates: unknown, dismissed: string[
   return out.length > KEYWORD_CAP ? out.slice(out.length - KEYWORD_CAP) : out
 }
 
-// 来源感知的候选过滤（确定性，不靠 LLM 自觉）。优先级：
-//  - 出现在「不想看（主动屏蔽过）」标题里 → 留（最高置信，哪怕只一条、哪怕也看过）
-//  - 命中你「看过的」标题（任意完播率、且非主动屏蔽）→ 丢（防误伤：看过 ≈ 不想被关键词自动藏掉）
-//  - 只在「刷到过（被动曝光）」里出现 → 必须 ≥2 条不同标题复现，才算套路
-const IMPRESSION_RECUR_MIN = 2
+// 护栏只认「看够 15 秒」的播放才算「看过」（按绝对秒数，不按完播率——短视频看完也就十几秒，
+// 长视频划走 5 秒不算数）。一次快速划走（如 5 秒）不再保护该词，避免「随手点开又退」反而护住垃圾词。
+const WATCHED_PROTECT_MIN_SECONDS = 15
+
+// 实际观看秒数：优先用记录的 watchedSeconds；老记录没有就用 完播率×时长 估算；都没有按 0。
+function effectiveWatchedSeconds(a: PlayAction): number {
+  return a.watchedSeconds ?? Math.round((a.watchRatio ?? 0) * (a.durationSeconds ?? 0))
+}
+
+// 结构性「炸裂半径」护栏：跟具体词无关，不写死任何词，只拦「短到/宽到屏了必然大面积误伤」的。
+// 它只会否决候选，永不因「频率」去屏蔽——与「刷到多≠讨厌」不冲突。
+const MIN_KEYWORD_LEN = 2        // 1 个字的词匹配面过大，一律不作屏蔽词
+const BROAD_MATCH_RATIO = 0.15   // 命中曝光流标题超过此比例 → 太宽泛，屏了大面积误伤
+const MIN_CORPUS_FOR_BROAD = 20  // 曝光样本太少时不做宽度判断（统计无意义）
+function tooBroadOrShort(low: string, impressionsLower: string[]): boolean {
+  if (low.length < MIN_KEYWORD_LEN) return true
+  if (impressionsLower.length >= MIN_CORPUS_FOR_BROAD) {
+    let hits = 0
+    for (const t of impressionsLower) if (t.includes(low)) hits++
+    if (hits / impressionsLower.length > BROAD_MATCH_RATIO) return true
+  }
+  return false
+}
+
+// 关键词有效性护栏（确定性，不靠 LLM 自觉）。普适原则，不写死任何「垃圾词」：
+//   一个词成立 ⟺ 出现在你「不喜欢」的一侧、且不出现在你「喜欢」的一侧，且不过短/过宽。
+//   - 结构护栏：太短或命中面过大的词直接丢（跟口味无关，屏了对谁都是灾难）；
+//   - 字面溯源：必须在你主动屏蔽过的标题/话题、或你刷到过的标题里真实出现（防 LLM 造词）；
+//   - 命中你看过的任何标题 → 丢（核心护栏：看过 ≈ 喜欢/不想被自动藏。按各人数据自动分流——
+//     爱看剪辑的人「剪映」会被这条放行掉，讨厌的人才留得下；不预设任何人的口味）。
+// 不靠频率——「刷到得多」不等于「讨厌」。生成（filterCandidates）与自清（pruneGrounded）共用这一条，
+// 两者永不漂移。
+function makeKeywordGuard(
+  dislikedTitles: string[],
+  impressionTitles: string[],
+  watchedTitles: string[],
+): (kw: string) => boolean {
+  const impressions = impressionTitles.map(t => t.toLowerCase())
+  const grounded = [...dislikedTitles.map(t => t.toLowerCase()), ...impressions]
+  const watched = watchedTitles.map(t => t.toLowerCase())
+  return (kw: string): boolean => {
+    const low = kw.trim().toLowerCase()
+    if (!low) return false
+    if (tooBroadOrShort(low, impressions)) return false     // 结构护栏：太短/太宽
+    if (!grounded.some(t => t.includes(low))) return false  // 没在任何真实标题里出现过 → 防造词
+    return !watched.some(t => t.includes(low))              // 命中你看过的 → 防误伤
+  }
+}
+
+// 本轮 LLM 候选词过滤（输出 trim 后的词）。
 function filterCandidates(
   candidates: unknown,
   dislikedTitles: string[],
   impressionTitles: string[],
   watchedTitles: string[],
 ): string[] {
+  const keep = makeKeywordGuard(dislikedTitles, impressionTitles, watchedTitles)
   const cand = Array.isArray(candidates) ? candidates : []
-  const blocked = dislikedTitles.map(t => t.toLowerCase())
-  const watched = watchedTitles.map(t => t.toLowerCase())
-  const seen = impressionTitles.map(t => t.toLowerCase())
   const out: string[] = []
   for (const kw of cand) {
-    if (typeof kw !== 'string') continue
-    const low = kw.trim().toLowerCase()
-    if (!low) continue
-    if (blocked.some(t => t.includes(low))) { out.push(kw.trim()); continue }  // 主动屏蔽过 → 留
-    if (watched.some(t => t.includes(low))) continue                            // 看过（非屏蔽）→ 丢，防误伤
-    let hits = 0
-    for (const t of seen) { if (t.includes(low)) hits++ }
-    if (hits >= IMPRESSION_RECUR_MIN) out.push(kw.trim())                       // 曝光复现 ≥2 → 留
+    if (typeof kw === 'string' && keep(kw)) out.push(kw.trim())
   }
   return out
 }
 
-// 自我清理：每次分析重新校验整列表。优先级同上：
-//  - 主动屏蔽过的 → 留；命中「看过」的（非屏蔽）→ 剔除（误伤）；
-//  - 否则只在仍命中「刷到过」时保留，都不命中则剔除（历史残留/已滚出窗口）。
+// 自我清理：每轮按同一条护栏重校验整列表，剔除不再成立的词（内容已滚出窗口、或现在才发现命中你看过的）。
 function pruneGrounded(
   keywords: string[],
   dislikedTitles: string[],
   impressionTitles: string[],
   watchedTitles: string[],
 ): string[] {
-  const blocked = dislikedTitles.map(t => t.toLowerCase())
-  const watched = watchedTitles.map(t => t.toLowerCase())
-  const seen = impressionTitles.map(t => t.toLowerCase())
-  return keywords.filter(kw => {
-    const low = kw.trim().toLowerCase()
-    if (!low) return false
-    if (blocked.some(t => t.includes(low))) return true    // 主动屏蔽过 → 留
-    if (watched.some(t => t.includes(low))) return false   // 看过（非屏蔽）→ 剔除，防误伤
-    return seen.some(t => t.includes(low))                 // 仍刷到 → 留，否则剔除
-  })
+  return keywords.filter(makeKeywordGuard(dislikedTitles, impressionTitles, watchedTitles))
 }
 
 function storageGet(keys: string[]): Promise<Record<string, any>> {
@@ -155,15 +180,17 @@ async function buildProfile(): Promise<void> {
   const input = buildAnalysisInput(actions as Action[], userProfile, settings, impressions)
   const prompt = renderAnalysisPrompt(input)
 
-  // 关键词流水线（LLM 之后、确定性过滤）所需的标题语料——本次重构范围外，逻辑不动。
+  // 关键词流水线（LLM 之后、确定性护栏）所需的标题语料。
+  // 字面溯源语料：你主动屏蔽过的标题/话题 + 你刷到过的标题——候选词必须在这里真实出现。
   const recentActions = (actions as Action[]).slice(0, 50)
   const dislikedTitles = recentActions
     .map(a => a.type === 'disinterested' ? a.title : a.type === 'blockTopic' ? a.phrase : '')
     .filter((t): t is string => !!t)
   const impressionTitles = input.impressions.map(i => i.title).filter(Boolean)
-  // 防误伤对照：你看过的所有标题（任意完播率，≥3s 才记录）——看过 ≈ 不想被关键词自动藏掉。
+  // 防误伤对照：你「真看了」（≥15s）的标题——看过 ≈ 不想被关键词自动藏掉。
   const watchedTitles = (actions as Action[])
     .filter((a): a is PlayAction => a.type === 'play')
+    .filter(a => effectiveWatchedSeconds(a) >= WATCHED_PROTECT_MIN_SECONDS)
     .map(a => a.title)
     .filter((t): t is string => !!t)
   const activeKeywords = input.known.active
