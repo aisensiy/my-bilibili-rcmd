@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { storage, type Settings, DEFAULT_SETTINGS } from '../lib/storage'
 import { PROVIDERS, type ProviderId, callProvider, ensureCustomHostPermission } from '../../lib/providers'
+import type { PlayAction } from '@/ui/types'
 import AboutSection from './AboutSection'
 import SettingsView from '@/ui/SettingsView'
 
@@ -16,6 +17,7 @@ export default function SettingsTab() {
   const [savedFlash, setSavedFlash] = useState(false)
   const [testStatus, setTestStatus] = useState<TestStatus>('idle')
   const [testMsg, setTestMsg] = useState('')
+  const [exportMsg, setExportMsg] = useState('')
   // 检测当前 SettingsTab 是否渲染在独立标签页里。popup 模式下要提示用户
   // 粘贴长 URL/Key 时弹窗会失焦关闭，建议切到标签页配置。
   const [isInTab, setIsInTab] = useState(false)
@@ -65,6 +67,44 @@ export default function SettingsTab() {
     setSavedSnapshot(next)
     // 关闭采集时清空已收集的曝光池（隐私上不留存）
     if (!next.harvestImpressions) storage.clearImpressions().catch(console.error)
+  }
+
+  // 导出「屏蔽相关数据」JSON 到剪贴板，供拿去外部 AI 分析提词（开发者/调试工具）。
+  const exportData = async () => {
+    try {
+      const [prof, actions, impressions] = await Promise.all([
+        storage.getProfile(),
+        storage.getActions(),
+        storage.getImpressions(),
+      ])
+      const blocked = actions
+        .filter(a => a.type === 'disinterested' || a.type === 'blockUp' || a.type === 'blockTopic')
+        .map(a =>
+          a.type === 'disinterested' ? { type: a.type, title: a.title, upName: a.upName }
+          : a.type === 'blockUp' ? { type: a.type, upName: a.upName }
+          : { type: a.type, phrase: a.phrase })
+      const liked = actions
+        .filter((a): a is PlayAction => a.type === 'play' && a.watchRatio > 0.5)
+        .map(a => ({ title: a.title, upName: a.upName, watchRatio: a.watchRatio }))
+      const snapshot = {
+        exportedAt: new Date().toISOString(),
+        profile: {
+          interests: prof.interests,
+          disinterests: prof.disinterests,
+          disinterestKeywords: prof.disinterestKeywords,
+          dismissedKeywords: prof.dismissedKeywords,
+          analysis: prof.analysis,
+        },
+        blocked,
+        liked,
+        impressions: impressions.map(i => ({ title: i.title, upName: i.upName })),
+      }
+      await navigator.clipboard.writeText(JSON.stringify(snapshot, null, 2))
+      setExportMsg('已复制分析数据到剪贴板')
+      setTimeout(() => setExportMsg(''), 2000)
+    } catch (e) {
+      setExportMsg('导出失败：' + (e instanceof Error ? e.message : String(e)))
+    }
   }
 
   const testConnection = async () => {
@@ -164,6 +204,8 @@ export default function SettingsTab() {
       onUpdateProviderCfg={updateProviderCfg}
       onUpdateThreshold={updateThreshold}
       onToggleDebug={toggleDebug}
+      onExportData={exportData}
+      exportMsg={exportMsg}
       onToggleHarvest={toggleHarvest}
       onTestConnection={testConnection}
       onSave={save}

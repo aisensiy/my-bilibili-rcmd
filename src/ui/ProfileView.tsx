@@ -11,16 +11,12 @@ interface ProfileViewProps {
   msg?: string
   /** 设置里"采集推荐流标题"是否开启——关时在 AI 屏蔽词下提示可开启增强。 */
   harvestOn?: boolean
-  /** debug 模式下，每个 AI 屏蔽词命中的来源标题（来自你的"不想看"/曝光标题）。undefined = 不显示。 */
-  keywordSources?: Record<string, { text: string; kind: 'blocked' | 'seen' }[]>
   onAnalyze?: () => void
   onEditProfile?: (next: UserProfile) => void
-  /** 导出「屏蔽相关数据」JSON 到剪贴板，供用户拿去外部 AI 分析提词。 */
-  onExport?: () => void
 }
 
 export default function ProfileView({
-  profile, counter, analysis, msg, harvestOn, keywordSources, onAnalyze, onEditProfile, onExport,
+  profile, counter, analysis, msg, harvestOn, onAnalyze, onEditProfile,
 }: ProfileViewProps) {
   const analyzing = analysis?.running ?? false
   // 分析中每秒触发一次重渲染显示已用秒数
@@ -125,36 +121,6 @@ export default function ProfileView({
             >
               ↺ 重置 AI 屏蔽词（清空，保留黑名单）
             </button>
-          )}
-          {onEditProfile && onExport && (
-            <button
-              onClick={onExport}
-              className="block text-[11px] text-gray-500 hover:text-bili-pink underline decoration-dotted underline-offset-2 mb-3"
-            >
-              ⤓ 导出分析数据（复制到剪贴板，喂给 AI 自己提词）
-            </button>
-          )}
-          {keywordSources && profile.disinterestKeywords.length > 0 && (
-            <div className="mb-4 rounded-md bg-gray-50 border border-gray-100 p-2">
-              <div className="text-[10px] font-semibold text-gray-500 mb-1">调试：关键词来源（命中你的标题）</div>
-              <div className="space-y-1.5">
-                {profile.disinterestKeywords.map(kw => {
-                  const hits = keywordSources[kw] ?? []
-                  return (
-                    <div key={kw} className="text-[10px] leading-relaxed">
-                      <span className={hits.length === 0 ? 'text-red-500 font-medium' : 'text-gray-700 font-medium'}>
-                        {kw} · 命中 {hits.length} 条{hits.length === 0 ? '（可疑）' : ''}
-                      </span>
-                      {hits.slice(0, 5).map((h, i) => (
-                        <div key={i} className="text-gray-400 truncate" title={h.text}>
-                          · [{h.kind === 'blocked' ? '屏蔽过' : '刷到过'}] {h.text}
-                        </div>
-                      ))}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
           )}
           {onEditProfile && harvestOn === false && (
             <p className="text-[10px] text-gray-400 -mt-2 mb-4 leading-relaxed">

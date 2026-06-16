@@ -23,6 +23,10 @@ export interface SettingsViewProps {
   onUpdateProviderCfg?: (patch: { apiKey?: string; model?: string; baseUrl?: string }) => void
   onUpdateThreshold?: (n: number) => void
   onToggleDebug?: () => void
+  /** 导出分析数据到剪贴板（仅 debug 模式显示——开发者 / 喂外部 AI 提词用）。 */
+  onExportData?: () => void
+  /** 导出操作的临时反馈文案。 */
+  exportMsg?: string
   onToggleHarvest?: () => void
   onTestConnection?: () => void
   onSave?: () => void
@@ -47,6 +51,8 @@ export default function SettingsView({
   onUpdateProviderCfg,
   onUpdateThreshold,
   onToggleDebug,
+  onExportData,
+  exportMsg,
   onToggleHarvest,
   onTestConnection,
   onSave,
@@ -236,6 +242,20 @@ export default function SettingsView({
           />
         </button>
       </div>
+
+      {/* 导出分析数据：debug 工具，仅 debug 模式显示，挂在调试开关下面 */}
+      {settings.debugMode && (
+        <div className="mb-6 -mt-3">
+          <button
+            onClick={() => onExportData?.()}
+            disabled={!onExportData}
+            className="text-[11px] text-gray-500 hover:text-bili-pink underline decoration-dotted underline-offset-2 disabled:opacity-60"
+          >
+            ⤓ 导出分析数据（复制到剪贴板，喂给 AI 自己提词）
+          </button>
+          {exportMsg && <p className="mt-1 text-[10px] text-gray-400">{exportMsg}</p>}
+        </div>
+      )}
 
       {/* 采集推荐流标题 */}
       <div className="mb-6 flex items-center justify-between">
